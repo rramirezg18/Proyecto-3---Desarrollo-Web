@@ -8,16 +8,20 @@ using ScoreEvent= Scoreboard.Models.Entities.ScoreEvent;
 using Foul      = Scoreboard.Models.Entities.Foul;
 using TeamWin   = Scoreboard.Models.Entities.TeamWin;
 
+using Scoreboard.Models.Entities;
+
 namespace Scoreboard.Infrastructure;
 
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
-    public DbSet<Team>       Teams       => Set<Team>();
-    public DbSet<Player>     Players     => Set<Player>();
-    public DbSet<Match>      Matches     => Set<Match>();
+    public DbSet<Team> Teams => Set<Team>();
+    public DbSet<Player> Players => Set<Player>();
+    public DbSet<Match> Matches => Set<Match>();
     public DbSet<ScoreEvent> ScoreEvents => Set<ScoreEvent>();
-    public DbSet<Foul>       Fouls       => Set<Foul>();
-    public DbSet<TeamWin>    TeamWins    => Set<TeamWin>();
+    public DbSet<Foul> Fouls => Set<Foul>();
+    public DbSet<TeamWin> TeamWins => Set<TeamWin>();
+    public DbSet<User> Users { get; set; }
+    public DbSet<Role> Roles { get; set; }
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -86,5 +90,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasIndex(tw => tw.TeamId);
 
         base.OnModelCreating(b);
+
+        b.Entity<Role>()
+        .HasMany(t => t.Users)
+        .WithOne(t => t.Role)
+        .HasForeignKey(t => t.RoleId);
     }
 }
