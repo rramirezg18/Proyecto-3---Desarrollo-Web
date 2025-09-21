@@ -6,8 +6,11 @@ using Player    = Scoreboard.Models.Entities.Player;
 using Match     = Scoreboard.Models.Entities.Match;
 using ScoreEvent= Scoreboard.Models.Entities.ScoreEvent;
 using Foul      = Scoreboard.Models.Entities.Foul;
-using TeamWin   = Scoreboard.Models.Entities.TeamWin;
-
+using TeamWin = Scoreboard.Models.Entities.TeamWin;
+using Menu = Scoreboard.Models.Entities.Menu;
+using Role = Scoreboard.Models.Entities.Role;
+using User = Scoreboard.Models.Entities.User;
+using RoleMenu = Scoreboard.Models.Entities.RoleMenu;
 using Scoreboard.Models.Entities;
 
 namespace Scoreboard.Infrastructure;
@@ -22,6 +25,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<TeamWin> TeamWins => Set<TeamWin>();
     public DbSet<User> Users { get; set; }
     public DbSet<Role> Roles { get; set; }
+    public DbSet<Menu> Menus => Set<Menu>();
+    public DbSet<RoleMenu> RoleMenus => Set<RoleMenu>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -95,5 +100,29 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         .HasMany(t => t.Users)
         .WithOne(t => t.Role)
         .HasForeignKey(t => t.RoleId);
+
+
+        b.Entity<Menu>()
+            .HasIndex(m => m.Url).IsUnique();
+
+        // RoleMenu
+        b.Entity<RoleMenu>()
+            .HasIndex(rm => new { rm.RoleId, rm.MenuId })
+            .IsUnique();
+
+        b.Entity<RoleMenu>()
+            .HasOne(rm => rm.Role)
+            .WithMany(r => r.RoleMenus)        // 👈 navegación correcta
+            .HasForeignKey(rm => rm.RoleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        b.Entity<RoleMenu>()
+            .HasOne(rm => rm.Menu)
+            .WithMany(m => m.RoleMenus)        // 👈 navegación correcta
+            .HasForeignKey(rm => rm.MenuId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+
+
     }
 }
