@@ -9,7 +9,6 @@ public class Foul
 
     public string? Type { get; set; }
     public DateTime DateRegister { get; set; } = DateTime.Now;
-
     public Match Match { get; set; } = null!;
     public Team Team { get; set; } = null!;
     public Player? Player { get; set; }
