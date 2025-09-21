@@ -31,5 +31,11 @@ namespace Scoreboard.Repositories
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
         }
+
+        public Task<User?> GetByIdWithRoleAsync(int id) =>
+        _context.Users
+            .Include(u => u.Role)
+            .FirstOrDefaultAsync(u => u.Id == id);
+
     }
 }
