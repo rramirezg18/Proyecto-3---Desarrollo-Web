@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Scoreboard.Infrastructure;
 
@@ -11,9 +12,11 @@ using Scoreboard.Infrastructure;
 namespace Scoreboard.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250921184805_FixPendingChanges")]
+    partial class FixPendingChanges
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -101,30 +104,6 @@ namespace Scoreboard.Infrastructure.Migrations
                     b.ToTable("Matches");
                 });
 
-            modelBuilder.Entity("Scoreboard.Models.Entities.Menu", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Url")
-                        .IsUnique();
-
-                    b.ToTable("Menus");
-                });
-
             modelBuilder.Entity("Scoreboard.Models.Entities.Player", b =>
                 {
                     b.Property<int>("Id")
@@ -179,35 +158,6 @@ namespace Scoreboard.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Roles");
-                });
-
-            modelBuilder.Entity("Scoreboard.Models.Entities.RoleMenu", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("MenuId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("RoleMenuId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MenuId");
-
-                    b.HasIndex("RoleMenuId");
-
-                    b.HasIndex("RoleId", "MenuId")
-                        .IsUnique();
-
-                    b.ToTable("RoleMenus");
                 });
 
             modelBuilder.Entity("Scoreboard.Models.Entities.ScoreEvent", b =>
@@ -398,29 +348,6 @@ namespace Scoreboard.Infrastructure.Migrations
                     b.Navigation("Team");
                 });
 
-            modelBuilder.Entity("Scoreboard.Models.Entities.RoleMenu", b =>
-                {
-                    b.HasOne("Scoreboard.Models.Entities.Menu", "Menu")
-                        .WithMany("RoleMenus")
-                        .HasForeignKey("MenuId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Scoreboard.Models.Entities.Role", "Role")
-                        .WithMany("RoleMenus")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Scoreboard.Models.Entities.RoleMenu", null)
-                        .WithMany("RoleMenus")
-                        .HasForeignKey("RoleMenuId");
-
-                    b.Navigation("Menu");
-
-                    b.Navigation("Role");
-                });
-
             modelBuilder.Entity("Scoreboard.Models.Entities.ScoreEvent", b =>
                 {
                     b.HasOne("Scoreboard.Models.Entities.Match", "Match")
@@ -482,21 +409,9 @@ namespace Scoreboard.Infrastructure.Migrations
                     b.Navigation("ScoreEvents");
                 });
 
-            modelBuilder.Entity("Scoreboard.Models.Entities.Menu", b =>
-                {
-                    b.Navigation("RoleMenus");
-                });
-
             modelBuilder.Entity("Scoreboard.Models.Entities.Role", b =>
                 {
-                    b.Navigation("RoleMenus");
-
                     b.Navigation("Users");
-                });
-
-            modelBuilder.Entity("Scoreboard.Models.Entities.RoleMenu", b =>
-                {
-                    b.Navigation("RoleMenus");
                 });
 
             modelBuilder.Entity("Scoreboard.Models.Entities.Team", b =>

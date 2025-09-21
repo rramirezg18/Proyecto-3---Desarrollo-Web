@@ -1,6 +1,10 @@
 import { Routes } from '@angular/router';
+
 import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
+
+import { PlayersListComponent } from './components/players/players-list/players-list';
+import { PlayerFormComponent } from './components/players/player-form/player-form';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -34,13 +38,12 @@ export const routes: Routes = [
       import('./features/control/control-panel/control-panel').then(m => m.ControlPanelComponent),
   },
 
-  // Páginas de admin
-  {
-    path: 'players',
-    canActivate: [authGuard, adminGuard],
-    loadComponent: () =>
-      import('./pages/players/players').then(m => m.PlayersComponent),
-  },
+  // 🔹 CRUD de jugadores (solo admin)
+  { path: 'players', canActivate: [authGuard, adminGuard], component: PlayersListComponent },
+  { path: 'players/create', canActivate: [authGuard, adminGuard], component: PlayerFormComponent },
+  { path: 'players/edit/:id', canActivate: [authGuard, adminGuard], component: PlayerFormComponent },
+
+  // Páginas admin
   {
     path: 'teams',
     canActivate: [authGuard, adminGuard],
@@ -56,3 +59,4 @@ export const routes: Routes = [
 
   { path: '**', redirectTo: 'login' }
 ];
+
