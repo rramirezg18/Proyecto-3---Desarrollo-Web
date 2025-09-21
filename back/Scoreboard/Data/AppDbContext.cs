@@ -1,17 +1,17 @@
 using Microsoft.EntityFrameworkCore;
-
-
-using Team      = Scoreboard.Models.Entities.Team;
-using Player    = Scoreboard.Models.Entities.Player;
-using Match     = Scoreboard.Models.Entities.Match;
-using ScoreEvent= Scoreboard.Models.Entities.ScoreEvent;
-using Foul      = Scoreboard.Models.Entities.Foul;
-using TeamWin = Scoreboard.Models.Entities.TeamWin;
-using Menu = Scoreboard.Models.Entities.Menu;
-using Role = Scoreboard.Models.Entities.Role;
-using User = Scoreboard.Models.Entities.User;
-using RoleMenu = Scoreboard.Models.Entities.RoleMenu;
 using Scoreboard.Models.Entities;
+
+// Alias para simplificar
+using Team       = Scoreboard.Models.Entities.Team;
+using Player     = Scoreboard.Models.Entities.Player;
+using Match      = Scoreboard.Models.Entities.Match;
+using ScoreEvent = Scoreboard.Models.Entities.ScoreEvent;
+using Foul       = Scoreboard.Models.Entities.Foul;
+using TeamWin    = Scoreboard.Models.Entities.TeamWin;
+using Menu       = Scoreboard.Models.Entities.Menu;
+using Role       = Scoreboard.Models.Entities.Role;
+using User       = Scoreboard.Models.Entities.User;
+using RoleMenu   = Scoreboard.Models.Entities.RoleMenu;
 
 namespace Scoreboard.Infrastructure;
 
@@ -23,8 +23,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ScoreEvent> ScoreEvents => Set<ScoreEvent>();
     public DbSet<Foul> Fouls => Set<Foul>();
     public DbSet<TeamWin> TeamWins => Set<TeamWin>();
-    public DbSet<User> Users { get; set; }
-    public DbSet<Role> Roles { get; set; }
+
+    public DbSet<User> Users => Set<User>();
+    public DbSet<Role> Roles => Set<Role>();
     public DbSet<Menu> Menus => Set<Menu>();
     public DbSet<RoleMenu> RoleMenus => Set<RoleMenu>();
 
@@ -94,14 +95,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         b.Entity<TeamWin>()
             .HasIndex(tw => tw.TeamId);
 
-        base.OnModelCreating(b);
-
+        // Role → Users
         b.Entity<Role>()
-        .HasMany(t => t.Users)
-        .WithOne(t => t.Role)
-        .HasForeignKey(t => t.RoleId);
+            .HasMany(r => r.Users)
+            .WithOne(u => u.Role)
+            .HasForeignKey(u => u.RoleId);
 
-
+        // Menu
         b.Entity<Menu>()
             .HasIndex(m => m.Url).IsUnique();
 
@@ -112,17 +112,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
         b.Entity<RoleMenu>()
             .HasOne(rm => rm.Role)
-            .WithMany(r => r.RoleMenus)        // 👈 navegación correcta
+            .WithMany(r => r.RoleMenus)
             .HasForeignKey(rm => rm.RoleId)
             .OnDelete(DeleteBehavior.Cascade);
 
         b.Entity<RoleMenu>()
             .HasOne(rm => rm.Menu)
-            .WithMany(m => m.RoleMenus)        // 👈 navegación correcta
+            .WithMany(m => m.RoleMenus)
             .HasForeignKey(rm => rm.MenuId)
             .OnDelete(DeleteBehavior.Cascade);
 
-
-
+        base.OnModelCreating(b);
     }
 }
