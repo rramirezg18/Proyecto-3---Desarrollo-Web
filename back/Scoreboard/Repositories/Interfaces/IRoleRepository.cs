@@ -9,5 +9,8 @@ namespace Scoreboard.Repositories.Interfaces
         Task<Role?> GetRoleByIdAsync(int id);
         Task<Role?> UpdateRoleAsync(Role role);
         Task<bool> DeleteRoleAsync(int id);
+
+        Task<Role?> GetByNameAsync(string name);
+
     }
 }
