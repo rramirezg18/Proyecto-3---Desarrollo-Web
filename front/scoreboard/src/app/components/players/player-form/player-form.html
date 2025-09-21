@@ -1,0 +1,32 @@
+<mat-card>
+  <mat-card-title>{{ id ? 'Editar Jugador' : 'Nuevo Jugador' }}</mat-card-title>
+  <form [formGroup]="form" (ngSubmit)="save()">
+    
+    <mat-form-field class="full-width">
+      <mat-label>Número</mat-label>
+      <input matInput formControlName="number">
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Nombre</mat-label>
+      <input matInput formControlName="name">
+    </mat-form-field>
+
+    <!-- 👇 reemplazo del input por un combo -->
+    <mat-form-field class="full-width">
+      <mat-label>Equipo</mat-label>
+      <mat-select formControlName="teamId">
+        <mat-option *ngFor="let t of teams" [value]="t.id">
+          {{ t.name }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" type="submit">
+      Guardar
+    </button>
+    <button mat-button routerLink="/players">
+      Cancelar
+    </button>
+  </form>
+</mat-card>

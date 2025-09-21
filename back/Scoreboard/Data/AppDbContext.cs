@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-
+using Scoreboard.Models.Entities;
 
 using Team      = Scoreboard.Models.Entities.Team;
 using Player    = Scoreboard.Models.Entities.Player;
@@ -7,8 +7,6 @@ using Match     = Scoreboard.Models.Entities.Match;
 using ScoreEvent= Scoreboard.Models.Entities.ScoreEvent;
 using Foul      = Scoreboard.Models.Entities.Foul;
 using TeamWin   = Scoreboard.Models.Entities.TeamWin;
-
-using Scoreboard.Models.Entities;
 
 namespace Scoreboard.Infrastructure;
 
@@ -20,8 +18,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ScoreEvent> ScoreEvents => Set<ScoreEvent>();
     public DbSet<Foul> Fouls => Set<Foul>();
     public DbSet<TeamWin> TeamWins => Set<TeamWin>();
-    public DbSet<User> Users { get; set; }
-    public DbSet<Role> Roles { get; set; }
+    public DbSet<User> Users => Set<User>();
+    public DbSet<Role> Roles => Set<Role>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -89,11 +87,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         b.Entity<TeamWin>()
             .HasIndex(tw => tw.TeamId);
 
-        base.OnModelCreating(b);
-
+        // Role → Users
         b.Entity<Role>()
-        .HasMany(t => t.Users)
-        .WithOne(t => t.Role)
-        .HasForeignKey(t => t.RoleId);
+            .HasMany(t => t.Users)
+            .WithOne(t => t.Role)
+            .HasForeignKey(t => t.RoleId);
+
+        base.OnModelCreating(b);
     }
 }
