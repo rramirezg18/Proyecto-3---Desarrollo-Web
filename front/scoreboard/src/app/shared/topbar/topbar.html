@@ -1,0 +1,11 @@
+<div class="topbar">
+  <div class="left">
+    <button *ngIf="showControl" mat-stroked-button (click)="goControl()">🎛️ Control</button>
+    <button *ngIf="showScore"   mat-stroked-button (click)="goScore()">📺 Scoreboard</button>
+    <button *ngIf="showAdmin && isAdmin" mat-raised-button color="primary" (click)="goAdmin()">⚙️ Admin</button>
+  </div>
+
+  <div class="right">
+    <button *ngIf="showLogout" mat-raised-button color="warn" (click)="logout()">🔒 Logout</button>
+  </div>
+</div>
