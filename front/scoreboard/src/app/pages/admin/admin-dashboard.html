@@ -1,4 +1,5 @@
-<div class="admin-wrap">
+<!-- usamos auth.isAdmin() directamente -->
+<div class="admin-menu" *ngIf="auth.isAdmin()">
   <h1>Panel de Administración</h1>
   <p class="hint">Elige una sección</p>
 

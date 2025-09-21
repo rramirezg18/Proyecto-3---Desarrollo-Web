@@ -1,16 +1,17 @@
 import { Component, computed, effect, inject, OnDestroy, PLATFORM_ID, signal } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
+import { isPlatformBrowser, NgIf, NgClass, NgFor } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs/operators';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import Swal from 'sweetalert2';
-import { StandingsDialogComponent } from '../../standings/standings-dialog';
 
+import { StandingsDialogComponent } from '../../standings/standings-dialog';
 
 import { ApiService } from '../../../core/api';
 import { RealtimeService } from '../../../core/realtime';
+import { AuthenticationService } from '../../../core/services/authentication.service';
 
 // Diálogos
 import { NewGameDialogComponent } from '../../matches/new-game-dialog';
@@ -21,7 +22,7 @@ type Possession = 'none' | 'home' | 'away';
 @Component({
   selector: 'app-control-panel',
   standalone: true,
-  imports: [RouterLink, MatButtonModule, MatDialogModule],
+  imports: [RouterLink, MatButtonModule, MatDialogModule, NgIf, NgClass, NgFor],
   templateUrl: './control-panel.html',
   styleUrls: ['./control-panel.css']
 })
@@ -32,6 +33,7 @@ export class ControlPanelComponent implements OnDestroy {
   private api = inject(ApiService);
   private platformId = inject(PLATFORM_ID);
   private dialog = inject(MatDialog);
+  private auth = inject(AuthenticationService);
 
   // Id partido desde ruta
   matchId = toSignal(this.route.paramMap.pipe(map(p => Number(p.get('id') ?? '1'))), { initialValue: 1 });
@@ -143,6 +145,34 @@ export class ControlPanelComponent implements OnDestroy {
 
   ngOnDestroy(): void { this.rt.disconnect(); }
 
+  // === Helpers de rol / navegación / sesión ===
+  get isAdmin(): boolean {
+    // Usa método del servicio si existe; si no, parsea localStorage
+    try {
+      if (typeof this.auth.isAdmin === 'function') return this.auth.isAdmin();
+      const saved = localStorage.getItem('user');
+      const user = saved ? JSON.parse(saved) : null;
+      return user?.role?.name?.toLowerCase() === 'admin';
+    } catch {
+      return false;
+    }
+  }
+
+  goScoreboard() {
+    this.router.navigate(['/score', this.matchId()]);
+  }
+
+  logout() {
+    if (typeof this.auth.logout === 'function') {
+      this.auth.logout();
+    } else {
+      // fallback defensivo
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    }
+    this.router.navigate(['/login']);
+  }
+
   // === Reintento para oficializar fin de cuarto en backend ===
   private tryAutoAdvance(retry = 0) {
     const id = this.matchId();
@@ -151,15 +181,10 @@ export class ControlPanelComponent implements OnDestroy {
     this.api.autoAdvanceQuarter(id).subscribe({
       next: (res: any) => {
         const q = res?.quarter ?? prevQuarter;
-
-        // Si el backend avanzó, terminó el anterior
         const ended = q > prevQuarter ? q - 1 : q;
-
-        // ⚡ Sólo mostrar alerta de fin de cuarto si es < 4
         if (ended < 4) {
           this.showQuarterEndAlert(ended);
         }
-        // 🚨 Si es el 4, no hacemos nada aquí: el effect de gameOver se encargará
       },
       error: (e) => {
         if (retry < 8) {
@@ -171,8 +196,9 @@ export class ControlPanelComponent implements OnDestroy {
     });
   }
 
-  // === Flujo antiguo (manual por nombres)
+  // === Flujo antiguo (manual por nombres) — SOLO ADMIN ===
   newGame() {
+    if (!this.isAdmin) return;
     const home = (prompt('Nombre equipo local:', this.homeName) ?? '').trim();
     if (!home) return;
     const away = (prompt('Nombre equipo visitante:', this.awayName) ?? '').trim();
@@ -194,7 +220,7 @@ export class ControlPanelComponent implements OnDestroy {
     this.api.adjustScore(this.matchId(), { teamId, delta: -1 }).subscribe();
   }
 
-  //Faltas
+  // Faltas
   foul(teamId: number | undefined, delta: 1 | -1) {
     if (!teamId) return;
     this.api.adjustFoul(this.matchId(), { teamId, delta }).subscribe();
@@ -219,20 +245,18 @@ export class ControlPanelComponent implements OnDestroy {
   }
 
   stop() {
-    // Evita que el 0 provocado por pausa dispare auto-advance
     this.armed = false;
     this.prevSecs = 0;
-    this.zeroGuardUntil = Date.now() + 1500; // ignora 0 por 1.5s
+    this.zeroGuardUntil = Date.now() + 1500;
     this.api.pauseTimer(this.matchId()).subscribe();
   }
 
   resume() { this.api.resumeTimer(this.matchId()).subscribe(); }
 
   reset() {
-    // Evita que el 0 provocado por reset dispare auto-advance
     this.armed = false;
     this.prevSecs = 0;
-    this.zeroGuardUntil = Date.now() + 1500; // ignora 0 por 1.5s
+    this.zeroGuardUntil = Date.now() + 1500;
     this.api.resetTimer(this.matchId()).subscribe();
   }
 
@@ -242,8 +266,8 @@ export class ControlPanelComponent implements OnDestroy {
     this.rt.startTimeout(sec, () => this.resume());
   }
 
-  //Periodo (real)
-  periodMinus() { /* mantener consistente: no retroceder */ }
+  // Periodo (real)
+  periodMinus() { /* no retroceder */ }
   periodPlus()  {
     const ended = this.rt.quarter();
     this.api.advanceQuarter(this.matchId()).subscribe({
@@ -251,13 +275,14 @@ export class ControlPanelComponent implements OnDestroy {
     });
   }
 
-  //Posesión (visual local)
+  // Posesión (visual local)
   posLeft()  { this.possession.set('home'); }
   posNone()  { this.possession.set('none'); }
   posRight() { this.possession.set('away'); }
 
-  // Registrar equipo
+  // Registrar equipo — SOLO ADMIN
   registerTeam() {
+    if (!this.isAdmin) return;
     const ref = this.dialog.open(RegisterTeamDialogComponent, {
       width: '520px',
       disableClose: true
@@ -279,8 +304,9 @@ export class ControlPanelComponent implements OnDestroy {
     });
   }
 
-  // Nuevo partido con equipos registrados
+  // Nuevo partido con equipos registrados — SOLO ADMIN
   newGameFromRegistered() {
+    if (!this.isAdmin) return;
     const ref = this.dialog.open(NewGameDialogComponent, {
       width: '520px',
       disableClose: true
@@ -317,17 +343,16 @@ export class ControlPanelComponent implements OnDestroy {
     await Swal.fire({
       title: 'Fin del partido',
       text,
-      icon: 'success',           
+      icon: 'success',
       position: 'top',
-      timer: 3000,               
-      timerProgressBar: true,     
-      showConfirmButton: false,   
+      timer: 3000,
+      timerProgressBar: true,
+      showConfirmButton: false,
       backdrop: true,
       background: '#ffffff',
       color: '#111'
     });
   }
-
 
   showStandings() {
     this.api.getStandings().subscribe({
@@ -339,13 +364,7 @@ export class ControlPanelComponent implements OnDestroy {
       },
       error: (e) => {
         console.error('getStandings error', e);
-        // Swal.fire({ icon: 'error', title: 'Error cargando standings', text: e?.error ?? e?.message ?? 'Unknown error' });
       }
     });
   }
-
-
-
-
-
 }

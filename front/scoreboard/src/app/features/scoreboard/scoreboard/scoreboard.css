@@ -221,8 +221,10 @@
 .admin-menu-fixed {
   position: fixed;
   top: 12px;
-  left: 12px;  /* o right:12px si lo quieres a la derecha */
-  z-index: 2000; /* por encima del tablero */
+  right: 12px;
+  z-index: 1500;
+  display: flex;
+  gap: 8px;
 }
 
 }
