@@ -48,5 +48,13 @@ namespace Scoreboard.Repositories
             await _context.SaveChangesAsync();
             return true;
         }
+
+        public async Task<Role?> GetByNameAsync(string name)
+        {
+            return await _context.Roles
+                .FirstOrDefaultAsync(r => r.Name == name);
+        }
+
+
     }
 }
