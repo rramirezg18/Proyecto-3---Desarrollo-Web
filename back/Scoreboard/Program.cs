@@ -48,6 +48,8 @@ builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IMenuRepository, MenuRepository>();
+builder.Services.AddScoped<IMenuService, MenuService>();
 
 // 6) 🔑 Configuración JWT
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -90,6 +92,8 @@ app.UseStaticFiles();
 
 app.UseAuthentication(); // 👈 importante: antes de Authorization
 app.UseAuthorization();
+
+
 
 app.MapControllers();
 app.MapHub<ScoreHub>("/hubs/score");

@@ -1,0 +1,13 @@
+<div class="admin-wrap">
+  <h1>Panel de Administración</h1>
+  <p class="hint">Elige una sección</p>
+
+  <div class="grid">
+    <a mat-raised-button color="primary" routerLink="/score/1">🏟️ Score</a>
+    <a mat-raised-button color="accent" routerLink="/control/1">🎛️ Control</a>
+    <a mat-raised-button color="primary" routerLink="/players">👥 Players</a>
+    <a mat-raised-button color="primary" routerLink="/teams">🏀 Teams</a>
+    <a mat-raised-button color="warn" routerLink="/tournaments">🏆 Tournaments</a>
+    <button mat-stroked-button color="basic" (click)="logout()">🔒 Logout</button>
+  </div>
+</div>

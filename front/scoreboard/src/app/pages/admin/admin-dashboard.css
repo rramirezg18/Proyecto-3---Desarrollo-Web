@@ -1,0 +1,19 @@
+.admin-wrap {
+  max-width: 920px;
+  margin: 32px auto;
+  padding: 0 16px;
+}
+.hint {
+  color: #666;
+  margin-top: -8px;
+}
+.grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+a[mat-raised-button], button[mat-stroked-button] {
+  text-align: left;
+  font-weight: 600;
+}
