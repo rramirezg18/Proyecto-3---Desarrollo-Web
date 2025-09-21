@@ -211,4 +211,18 @@
   .pos .pos-text {
     font-size: 0.9rem !important;
   }
+/* Botón logout flotante arriba a la derecha */
+.logout-btn {
+  position: fixed; /* 👈 no ocupa espacio, siempre flotando */
+  top: 15px;
+  right: 15px;
+  z-index: 2000; /* se asegura que esté encima de todo */
+}
+.admin-menu-fixed {
+  position: fixed;
+  top: 12px;
+  left: 12px;  /* o right:12px si lo quieres a la derecha */
+  z-index: 2000; /* por encima del tablero */
+}
+
 }

@@ -1,3 +1,9 @@
+<!-- 🔝 Menú admin flotante (solo si es admin). NO afecta el layout -->
+<app-admin-menu
+  *ngIf="auth.isAdmin()"
+  class="admin-menu-fixed">
+</app-admin-menu>
+
 <div class="board">
   <!-- TOP: FOULS + TIMER + FOULS -->
   <div class="top">
@@ -17,7 +23,10 @@
   <!-- MIDDLE: SCORE - POS/PERIOD - SCORE -->
   <div class="middle">
     <div class="score-box left">
-      <app-team-panel [label]="homeName" [score]="realtime.score().home"></app-team-panel>
+      <app-team-panel
+        [label]="homeName"
+        [score]="realtime.score().home">
+      </app-team-panel>
     </div>
 
     <div class="center">
@@ -30,7 +39,10 @@
     </div>
 
     <div class="score-box right">
-      <app-team-panel [label]="awayName" [score]="realtime.score().away"></app-team-panel>
+      <app-team-panel
+        [label]="awayName"
+        [score]="realtime.score().away">
+      </app-team-panel>
     </div>
   </div>
 </div>
