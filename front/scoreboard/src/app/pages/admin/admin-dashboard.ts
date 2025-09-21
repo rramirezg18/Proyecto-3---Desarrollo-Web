@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -12,7 +12,8 @@ import { AuthenticationService } from '../../core/services/authentication.servic
   styleUrls: ['./admin-dashboard.css']
 })
 export class AdminDashboardComponent {
-  constructor(private auth: AuthenticationService, private router: Router) {}
+  auth = inject(AuthenticationService); // 👈 disponible en el template
+  private router = inject(Router);
 
   logout() {
     this.auth.logout();

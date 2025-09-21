@@ -1,52 +1,55 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject, PLATFORM_ID } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { isPlatformBrowser } from '@angular/common';
 import { Observable } from 'rxjs';
 import { LoginResponseDto } from '../models/login-response.dto';
 
 @Injectable({ providedIn: 'root' })
 export class AuthenticationService {
   private apiUrl = 'http://localhost:5003/api/auth';
+  private platformId = inject(PLATFORM_ID);
 
   constructor(private http: HttpClient) {}
 
-  // 🔑 Login al backend
+  private storage(): Storage | null {
+    if (!isPlatformBrowser(this.platformId)) return null;
+    try { return window.localStorage; } catch { return null; }
+  }
+
   login(username: string, password: string): Observable<LoginResponseDto> {
     return this.http.post<LoginResponseDto>(`${this.apiUrl}/login`, { username, password });
   }
 
-  // 💾 Guardar usuario y token
   saveUser(userData: LoginResponseDto) {
-    localStorage.clear(); // ✅ limpia datos previos
-    localStorage.setItem('user', JSON.stringify(userData));
-    if (userData.token) {
-      localStorage.setItem('token', userData.token);
-    }
+    const s = this.storage();
+    if (!s) return;
+    s.setItem('user', JSON.stringify(userData));
+    if (userData.token) s.setItem('token', userData.token);
   }
 
-  // ✅ Obtener usuario
   getUser(): any | null {
-    const user = localStorage.getItem('user');
-    if (!user) return null;
-    try {
-      return JSON.parse(user);
-    } catch {
-      return null;
-    }
+    const s = this.storage();
+    const raw = s?.getItem('user');
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch { return null; }
   }
 
-  // ✅ Obtener rol (solo admin permitido para menú)
+  getToken(): string | null {
+    const s = this.storage();
+    return s?.getItem('token') ?? null;
+  }
+
   isAdmin(): boolean {
     const u = this.getUser();
     return u?.role?.name?.toLowerCase() === 'admin';
   }
 
-  // ✅ Obtener token (lo que necesita tu guard)
-  getToken(): string | null {
-    return localStorage.getItem('token');
-  }
-
-  // 🚪 Cerrar sesión
   logout() {
-    localStorage.clear();
-  }
+  console.error('[AUTH.logout] called');
+  console.trace('[AUTH.logout trace]');
+  const s = this.storage();
+  s?.removeItem('user');
+  s?.removeItem('token');
+}
+
 }
