@@ -1,0 +1,20 @@
+<mat-card class="mat-elevation-z4">
+  <mat-card-title>{{ isEdit ? 'Editar Equipo' : 'Nuevo Equipo' }}</mat-card-title>
+
+  <form (ngSubmit)="save()">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Nombre</mat-label>
+      <input matInput [(ngModel)]="team.name" name="name" required />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Color</mat-label>
+      <input matInput [(ngModel)]="team.color" name="color" />
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" type="submit">
+      {{ isEdit ? 'Actualizar' : 'Crear' }}
+    </button>
+    <button mat-raised-button routerLink="/teams" type="button">Cancelar</button>
+  </form>
+</mat-card>
