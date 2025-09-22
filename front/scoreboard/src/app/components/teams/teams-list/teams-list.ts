@@ -1,9 +1,8 @@
+// src/app/components/teams/teams-list/teams-list.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-
-// Angular Material
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatButtonModule } from '@angular/material/button';
@@ -37,9 +36,9 @@ export class TeamsListComponent implements OnInit {
   displayedColumns: string[] = ['id', 'name', 'color', 'playersCount', 'actions'];
   dataSource: Team[] = [];
 
-  search: string = '';
+  search = '';
 
-  // 👇 Paginación
+  // Paginación
   page = 1;
   pageSize = 5;
   totalItems = 0;
@@ -51,27 +50,26 @@ export class TeamsListComponent implements OnInit {
   }
 
   loadTeams() {
-    this.teamService.getTeams(this.page, this.pageSize, this.search).subscribe(res => {
-      this.dataSource = res.items;
-      this.totalItems = res.totalCount;
-    });
+    this.teamService.getTeams(this.page, this.pageSize, this.search)
+      .subscribe(res => {
+        this.dataSource = res.items;
+        this.totalItems = res.totalCount;
+      });
   }
 
   applyFilter() {
-    this.page = 1; // resetear a primera página cuando se busca
+    this.page = 1;
     this.loadTeams();
   }
 
-  // 👇 evento del paginador
   onPageChange(event: PageEvent) {
-    this.page = event.pageIndex + 1; // Angular Material empieza en 0
+    this.page = event.pageIndex + 1;
     this.pageSize = event.pageSize;
     this.loadTeams();
   }
 
   deleteTeam(id: number) {
-    if (confirm('¿Eliminar equipo?')) {
-      this.teamService.delete(id).subscribe(() => this.loadTeams());
-    }
+    if (!confirm('¿Eliminar equipo?')) return;
+    this.teamService.delete(id).subscribe(() => this.loadTeams());
   }
 }

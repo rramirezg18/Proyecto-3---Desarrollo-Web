@@ -1,0 +1,12 @@
+/* src/app/components/teams/teams-list/teams-list.scss */
+.full-width-table { width: 100%; }
+.filters { display: flex; gap: 12px; align-items: center; }
+.mb-3 { margin: 12px 0; }
+.color-dot {
+  display: inline-block;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: middle;
+  border: 1px solid rgba(0,0,0,.2);
+}

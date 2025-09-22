@@ -47,9 +47,13 @@ export class TeamFormComponent implements OnInit {
 
   save() {
     if (this.isEdit) {
-      this.teamService.update(this.team.id!, this.team).subscribe(() => this.router.navigate(['/teams']));
+      this.teamService.update(this.team.id!, this.team).subscribe(() => {
+        this.router.navigate(['/teams']);
+      });
     } else {
-      this.teamService.create(this.team).subscribe(() => this.router.navigate(['/teams']));
+      this.teamService.create(this.team).subscribe(() => {
+        this.router.navigate(['/teams']);
+      });
     }
   }
 }
