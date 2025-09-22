@@ -1,3 +1,20 @@
+<div class="cp-toolbar">
+  <div class="left">
+    <button mat-stroked-button (click)="goScoreboard()">⬅️ Ir al marcador</button>
+
+    <!-- Solo ADMIN -->
+    <button mat-raised-button color="primary" *ngIf="isAdmin" (click)="newGame()">➕ Nuevo partido</button>
+    <button mat-raised-button color="primary" *ngIf="isAdmin" (click)="newGameFromRegistered()">🧩 Nuevo (equipos)</button>
+    <button mat-raised-button color="accent"  *ngIf="isAdmin" (click)="registerTeam()">📝 Registrar equipo</button>
+
+    <!-- Para ambos roles -->
+    <button mat-stroked-button color="accent" (click)="showStandings()">🏆 Standings</button>
+  </div>
+
+  <div class="right">
+    <button mat-raised-button color="warn" (click)="logout()">🔒 Logout</button>
+  </div>
+</div>
 <div class="cp">
   <!-- Toolbar superior -->
   <div class="toolbar">

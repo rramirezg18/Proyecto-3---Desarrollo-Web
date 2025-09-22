@@ -1,6 +1,7 @@
+// src/app/pages/login/login.ts
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { AuthenticationService } from '../../core/services/authentication.service';
 import { CommonModule } from '@angular/common';
 import { LoginResponseDto } from '../../core/models/login-response.dto';
@@ -19,22 +20,23 @@ export class LoginComponent {
 
   constructor(
     private authService: AuthenticationService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {}
 
   onSubmit() {
     this.authService.login(this.username, this.password).subscribe({
       next: (res: LoginResponseDto) => {
-        // Guardar token y datos del usuario
         this.authService.saveUser(res);
-
-        // Redirigir según rol
+        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+        if (returnUrl) {
+          this.router.navigateByUrl(returnUrl);
+          return;
+        }
         const role = res.role?.name?.toLowerCase();
         this.router.navigate([role === 'admin' ? '/admin' : '/score/1']);
       },
-      error: () => {
-        this.errorMessage = 'Usuario o contraseña incorrectos';
-      }
+      error: () => { this.errorMessage = 'Usuario o contraseña incorrectos'; }
     });
   }
 }

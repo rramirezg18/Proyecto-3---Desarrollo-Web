@@ -1,4 +1,13 @@
-<!-- 🔝 Menú admin flotante (solo si es admin). NO afecta el layout -->
+<app-topbar
+  [showAdmin]="true"
+  [showControl]="true"
+  [showScore]="false"
+  [showLogout]="true"
+  [controlId]="matchId()"
+  [scoreId]="matchId()">
+</app-topbar>
+
+<!-- Menú admin flotante (solo si es admin, no afecta el layout del tablero) -->
 <app-admin-menu
   *ngIf="auth.isAdmin()"
   class="admin-menu-fixed">
@@ -7,7 +16,7 @@
 <div class="board">
   <!-- TOP: FOULS + TIMER + FOULS -->
   <div class="top">
-    <!-- ⬇️ lado HOME -->
+    <!-- Lado HOME -->
     <app-fouls-panel side="home" class="fouls left"></app-fouls-panel>
 
     <div class="timer-wrap">
@@ -16,7 +25,7 @@
       </div>
     </div>
 
-    <!-- ⬇️ lado AWAY -->
+    <!-- Lado AWAY -->
     <app-fouls-panel side="away" class="fouls right"></app-fouls-panel>
   </div>
 
