@@ -7,12 +7,11 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatSelectModule } from '@angular/material/select'; // 👈 necesario para el combo
+import { MatSelectModule } from '@angular/material/select';
 
 import { PlayerService } from '../../../services/player.service';
 import { TeamService } from '../../../services/team.service';
-
-import { Team } from '../../../models/team';          // 👈 modelo de equipos
+import { Team } from '../../../models/team';
 
 @Component({
   selector: 'app-player-form',
@@ -25,7 +24,7 @@ import { Team } from '../../../models/team';          // 👈 modelo de equipos
     MatInputModule,
     MatButtonModule,
     MatCardModule,
-    MatSelectModule // 👈 agregado para usar <mat-select>
+    MatSelectModule
   ],
   templateUrl: './player-form.html',
   styleUrls: ['./player-form.scss']
@@ -33,12 +32,12 @@ import { Team } from '../../../models/team';          // 👈 modelo de equipos
 export class PlayerFormComponent implements OnInit {
   form!: FormGroup;
   id?: number;
-  teams: Team[] = []; // 👈 aquí guardamos los equipos que vienen del backend
+  teams: Team[] = [];
 
   constructor(
     private fb: FormBuilder,
     private playerService: PlayerService,
-    private teamService: TeamService,   // 👈 inyectamos el servicio de equipos
+    private teamService: TeamService,
     private route: ActivatedRoute,
     private router: Router
   ) {}
@@ -50,10 +49,12 @@ export class PlayerFormComponent implements OnInit {
       teamId: ['', Validators.required]
     });
 
-    // 👇 cargar equipos cuando se abre el form
-    this.teamService.getTeams().subscribe(res => this.teams = res);
+    // ✅ corregido: ahora usamos res.items porque el backend devuelve { items, totalCount }
+    this.teamService.getTeams(1, 100).subscribe(res => {
+      this.teams = res.items;
+    });
 
-    // 👇 si es edición, cargar los datos del jugador
+    // ✅ si es edición, cargar datos del jugador
     this.id = Number(this.route.snapshot.paramMap.get('id'));
     if (this.id) {
       this.playerService.getById(this.id).subscribe(p => this.form.patchValue(p));

@@ -1,22 +1,17 @@
+// src/app/app.routes.ts
 import { Routes } from '@angular/router';
-
 import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
-
-import { PlayersListComponent } from './components/players/players-list/players-list';
-import { PlayerFormComponent } from './components/players/player-form/player-form';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
 
-  // Login
   {
     path: 'login',
     loadComponent: () =>
       import('./pages/login/login').then(m => m.LoginComponent),
   },
 
-  // Admin dashboard (solo administradores)
   {
     path: 'admin',
     canActivate: [authGuard, adminGuard],
@@ -24,7 +19,6 @@ export const routes: Routes = [
       import('./pages/admin/admin-dashboard').then(m => m.AdminDashboardComponent),
   },
 
-  // Scoreboard y control (logueado)
   {
     path: 'score/:id',
     canActivate: [authGuard],
@@ -38,18 +32,46 @@ export const routes: Routes = [
       import('./features/control/control-panel/control-panel').then(m => m.ControlPanelComponent),
   },
 
-  // 🔹 CRUD de jugadores (solo admin)
-  { path: 'players', canActivate: [authGuard, adminGuard], component: PlayersListComponent },
-  { path: 'players/create', canActivate: [authGuard, adminGuard], component: PlayerFormComponent },
-  { path: 'players/edit/:id', canActivate: [authGuard, adminGuard], component: PlayerFormComponent },
+  // Players (como ya lo tienes)
+  {
+    path: 'players',
+    canActivate: [authGuard, adminGuard],
+    loadComponent: () =>
+      import('./components/players/players-list/players-list').then(m => m.PlayersListComponent),
+  },
+  {
+    path: 'players/create',
+    canActivate: [authGuard, adminGuard],
+    loadComponent: () =>
+      import('./components/players/player-form/player-form').then(m => m.PlayerFormComponent),
+  },
+  {
+    path: 'players/edit/:id',
+    canActivate: [authGuard, adminGuard],
+    loadComponent: () =>
+      import('./components/players/player-form/player-form').then(m => m.PlayerFormComponent),
+  },
 
-  // Páginas admin
+  // ✅ Teams (misma estructura que players)
   {
     path: 'teams',
     canActivate: [authGuard, adminGuard],
     loadComponent: () =>
-      import('./pages/teams/teams').then(m => m.TeamsComponent),
+      import('./components/teams/teams-list/teams-list').then(m => m.TeamsListComponent),
   },
+  {
+    path: 'teams/create',
+    canActivate: [authGuard, adminGuard],
+    loadComponent: () =>
+      import('./components/teams/team-form/team-form').then(m => m.TeamFormComponent),
+  },
+  {
+    path: 'teams/edit/:id',
+    canActivate: [authGuard, adminGuard],
+    loadComponent: () =>
+      import('./components/teams/team-form/team-form').then(m => m.TeamFormComponent),
+  },
+
   {
     path: 'tournaments',
     canActivate: [authGuard, adminGuard],
@@ -57,6 +79,5 @@ export const routes: Routes = [
       import('./pages/tournaments/tournaments').then(m => m.TournamentsComponent),
   },
 
-  { path: '**', redirectTo: 'login' }
+  { path: '**', redirectTo: 'login' },
 ];
-
