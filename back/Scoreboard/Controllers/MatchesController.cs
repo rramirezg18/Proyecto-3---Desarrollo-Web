@@ -6,11 +6,11 @@ using Scoreboard.Hubs;
 using Scoreboard.Infrastructure;
 using Scoreboard.Models.DTOs;
 
-using MatchEntity      = Scoreboard.Models.Entities.Match;
-using TeamEntity       = Scoreboard.Models.Entities.Team;
+using MatchEntity = Scoreboard.Models.Entities.Match;
+using TeamEntity = Scoreboard.Models.Entities.Team;
 using ScoreEventEntity = Scoreboard.Models.Entities.ScoreEvent;
-using FoulEntity       = Scoreboard.Models.Entities.Foul;
-using TeamWinEntity    = Scoreboard.Models.Entities.TeamWin;
+using FoulEntity = Scoreboard.Models.Entities.Foul;
+using TeamWinEntity = Scoreboard.Models.Entities.TeamWin;
 
 namespace Scoreboard.Controllers;
 
@@ -22,6 +22,66 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
     public record ProgramarPartidoDto(int HomeTeamId, int AwayTeamId, DateTime DateMatchUtc, int? QuarterDurationSeconds);
     public record ReprogramarDto(DateTime NewDateMatchUtc);
     public record StartTimerDto(int? QuarterDurationSeconds);
+
+
+    // GET api/matches  (lista paginada)
+    // GET api/matches/list  (alias por compatibilidad con el front)
+    [HttpGet]
+    [HttpGet("list")]
+    public async Task<IActionResult> Listar(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? status = null,       // "Scheduled", "Live", "Finished", etc (opcional)
+        [FromQuery] int? teamId = null,          // filtra si el equipo participa (opcional)
+        [FromQuery] DateTime? from = null,       // UTC opcional
+        [FromQuery] DateTime? to = null          // UTC opcional
+    )
+    {
+        if (page <= 0) page = 1;
+        if (pageSize <= 0 || pageSize > 200) pageSize = 20;
+
+        var q = db.Matches
+            .Include(m => m.HomeTeam)
+            .Include(m => m.AwayTeam)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status))
+            q = q.Where(m => m.Status == status);
+
+        if (teamId is int tid && tid > 0)
+            q = q.Where(m => m.HomeTeamId == tid || m.AwayTeamId == tid);
+
+        if (from is DateTime f)
+            q = q.Where(m => m.DateMatch >= DateTime.SpecifyKind(f, DateTimeKind.Utc));
+
+        if (to is DateTime t)
+            q = q.Where(m => m.DateMatch <= DateTime.SpecifyKind(t, DateTimeKind.Utc));
+
+        var total = await q.CountAsync();
+
+        var items = await q
+            .OrderByDescending(m => m.DateMatch)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(m => new
+            {
+                id = m.Id,
+                dateMatchUtc = m.DateMatch,
+                status = m.Status,
+                homeTeamId = m.HomeTeamId,
+                awayTeamId = m.AwayTeamId,
+                homeTeam = m.HomeTeam.Name,
+                awayTeam = m.AwayTeam.Name,
+                homeScore = m.HomeScore,
+                awayScore = m.AwayScore,
+                quarter = m.Period,
+                quarterDurationSeconds = m.QuarterDurationSeconds
+            })
+            .ToListAsync();
+
+        return Ok(new { items, total, page, pageSize });
+    }
+
 
     // GET estado del partido
     [HttpGet("{id:int}")]
@@ -62,54 +122,38 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
         });
     }
 
-    // ===========================
-    // NUEVO: Programar / Reprogramar / Listar
-    // ===========================
-
     // POST api/matches/programar
     [HttpPost("programar")]
-    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Programar([FromBody] ProgramarPartidoDto dto)
     {
         if (dto.HomeTeamId <= 0 || dto.AwayTeamId <= 0 || dto.HomeTeamId == dto.AwayTeamId)
-            return BadRequest("Debes seleccionar dos equipos distintos.");
+            return BadRequest("Selecciona equipos válidos y distintos.");
 
         var home = await db.Teams.FindAsync(dto.HomeTeamId);
         var away = await db.Teams.FindAsync(dto.AwayTeamId);
-        if (home is null || away is null) return BadRequest("Ids de equipo inválidos.");
+        if (home is null || away is null) return BadRequest("Equipo inválido.");
 
-        var fechaUtc = DateTime.SpecifyKind(dto.DateMatchUtc, DateTimeKind.Utc);
-        if (fechaUtc < DateTime.UtcNow.AddMinutes(-1))
-            return BadRequest("La fecha/hora del partido (UTC) debe ser futura.");
+        var when = DateTime.SpecifyKind(dto.DateMatchUtc, DateTimeKind.Utc);
 
         var match = new MatchEntity
         {
             HomeTeamId = home.Id,
             AwayTeamId = away.Id,
             Status = "Scheduled",
-            QuarterDurationSeconds = dto.QuarterDurationSeconds is > 0 ? dto.QuarterDurationSeconds!.Value : 600,
+            QuarterDurationSeconds = dto.QuarterDurationSeconds is > 0 ? dto.QuarterDurationSeconds.Value : 600,
             HomeScore = 0,
             AwayScore = 0,
             Period = 1,
-            DateMatch = fechaUtc
+            DateMatch = when
         };
 
         db.Matches.Add(match);
         await db.SaveChangesAsync();
 
-        // Limpia cualquier runtime previo
-        rt.Reset(match.Id);
-
-        return CreatedAtAction(nameof(Get), new { id = match.Id }, new
-        {
-            matchId = match.Id,
-            homeTeamId = home.Id,
-            awayTeamId = away.Id,
-            dateMatchUtc = match.DateMatch,
-            quarterDurationSeconds = match.QuarterDurationSeconds,
-            status = match.Status
-        });
+        return Ok(new { matchId = match.Id });
     }
+
+
 
     // PUT api/matches/{id}/reprogramar
     [HttpPut("{id:int}/reprogramar")]
@@ -145,7 +189,8 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
             .Include(x => x.AwayTeam)
             .Where(x => x.Status == "Scheduled" && x.DateMatch >= ahora)
             .OrderBy(x => x.DateMatch)
-            .Select(x => new {
+            .Select(x => new
+            {
                 id = x.Id,
                 homeTeamId = x.HomeTeamId,
                 awayTeamId = x.AwayTeamId,
@@ -164,7 +209,7 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
     public async Task<IActionResult> Rango([FromQuery] DateTime from, [FromQuery] DateTime to)
     {
         var fromUtc = DateTime.SpecifyKind(from, DateTimeKind.Utc);
-        var toUtc   = DateTime.SpecifyKind(to,   DateTimeKind.Utc);
+        var toUtc = DateTime.SpecifyKind(to, DateTimeKind.Utc);
         if (toUtc <= fromUtc) return BadRequest("'to' debe ser mayor que 'from'.");
 
         var list = await db.Matches
@@ -172,7 +217,8 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
             .Include(x => x.AwayTeam)
             .Where(x => x.DateMatch >= fromUtc && x.DateMatch <= toUtc)
             .OrderBy(x => x.DateMatch)
-            .Select(x => new {
+            .Select(x => new
+            {
                 id = x.Id,
                 homeTeam = x.HomeTeam.Name,
                 awayTeam = x.AwayTeam.Name,

@@ -6,7 +6,9 @@ import { LoginResponseDto } from '../models/login-response.dto';
 
 @Injectable({ providedIn: 'root' })
 export class AuthenticationService {
-  private apiUrl = 'http://localhost:5003/api/auth';
+  //private apiUrl = 'http://localhost:5003/api/auth';
+  //private apiUrl = 'http://localhost:8080/api/auth';
+  private apiUrl = '/api/auth';
   private platformId = inject(PLATFORM_ID);
 
   constructor(private http: HttpClient) {}

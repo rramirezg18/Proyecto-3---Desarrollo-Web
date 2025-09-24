@@ -1,0 +1,111 @@
+<h2>🏆 Gestión de Torneos</h2>
+
+<form [formGroup]="form" class="tourn-form">
+  <div class="row">
+    <mat-form-field appearance="outline">
+      <mat-label>Equipo local</mat-label>
+      <mat-select formControlName="homeTeamId" (selectionChange)="onHomeTeamChange()">
+        <mat-option [value]="null">— Seleccionar —</mat-option>
+        <mat-option *ngFor="let t of teams()" [value]="t.id">{{ t.name }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Equipo visitante</mat-label>
+      <mat-select formControlName="awayTeamId" (selectionChange)="onAwayTeamChange()">
+        <mat-option [value]="null">— Seleccionar —</mat-option>
+        <mat-option *ngFor="let t of teams()" [value]="t.id">{{ t.name }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Fecha del partido</mat-label>
+      <input matInput [matDatepicker]="dp" formControlName="dateMatch" />
+      <mat-datepicker-toggle matSuffix [for]="dp"></mat-datepicker-toggle>
+      <mat-datepicker #dp></mat-datepicker>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Duración del cuarto (seg)</mat-label>
+      <input matInput type="number" formControlName="quarterDurationSeconds" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Estado</mat-label>
+      <mat-select formControlName="status">
+        <mat-option value="Programado">Programado</mat-option>
+        <mat-option value="Live">Live</mat-option>
+        <mat-option value="Finished">Finished</mat-option>
+        <mat-option value="Canceled">Canceled</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div class="row">
+    <mat-form-field appearance="outline" class="roster">
+      <mat-label>Roster Local</mat-label>
+      <mat-select formControlName="homeRoster" multiple>
+        <mat-option *ngFor="let p of homePlayers()" [value]="p.id">
+          {{ p.name }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="roster">
+      <mat-label>Roster Visitante</mat-label>
+      <mat-select formControlName="awayRoster" multiple>
+        <mat-option *ngFor="let p of awayPlayers()" [value]="p.id">
+          {{ p.name }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <button mat-raised-button color="primary" (click)="programMatch()" [disabled]="form.invalid">
+    Programar partido
+  </button>
+</form>
+
+<hr />
+
+<table mat-table [dataSource]="matches()" class="mat-elevation-z1 full">
+  <!-- Fecha -->
+  <ng-container matColumnDef="dateMatch">
+    <th mat-header-cell *matHeaderCellDef> Fecha </th>
+    <td mat-cell *matCellDef="let row">{{ row.dateMatch | date: 'medium' }}</td>
+  </ng-container>
+
+  <!-- Estado -->
+  <ng-container matColumnDef="status">
+    <th mat-header-cell *matHeaderCellDef> Estado </th>
+    <td mat-cell *matCellDef="let row">{{ row.status }}</td>
+  </ng-container>
+
+  <!-- Local -->
+  <ng-container matColumnDef="home">
+    <th mat-header-cell *matHeaderCellDef> Local </th>
+    <td mat-cell *matCellDef="let row">{{ row.homeTeam }}</td>
+  </ng-container>
+
+  <!-- Visita -->
+  <ng-container matColumnDef="away">
+    <th mat-header-cell *matHeaderCellDef> Visita </th>
+    <td mat-cell *matCellDef="let row">{{ row.awayTeam }}</td>
+  </ng-container>
+
+  <!-- Marcador -->
+  <ng-container matColumnDef="score">
+    <th mat-header-cell *matHeaderCellDef> Marcador </th>
+    <td mat-cell *matCellDef="let row">{{ row.homeScore }} - {{ row.awayScore }}</td>
+  </ng-container>
+
+  <!-- Faltas -->
+  <ng-container matColumnDef="fouls">
+    <th mat-header-cell *matHeaderCellDef> Faltas </th>
+    <td mat-cell *matCellDef="let row">{{ row.homeFouls }} - {{ row.awayFouls }}</td>
+  </ng-container>
+
+  <!-- 👇 Usa displayedColumns (no matchesDisplayedColumns) -->
+  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+  <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+</table>
