@@ -1,13 +1,14 @@
+// DTOs/ScheduleMatchDto.cs
 namespace Scoreboard.Models.DTOs
 {
     public class ScheduleMatchDto
     {
         public int HomeTeamId { get; set; }
         public int AwayTeamId { get; set; }
-        /// <summary>
-        /// Fecha/hora del partido en UTC. Ej: 2025-09-30T20:00:00Z
-        /// </summary>
-        public DateTime DateMatchUtc { get; set; }
-        public int? QuarterDurationSeconds { get; set; } = 600;
+        public DateTime DateMatchUtc { get; set; }           // <- dateMatchUtc
+        public int QuarterDurationSeconds { get; set; } = 600;
+
+        public List<int> HomeRosterPlayerIds { get; set; } = []; // <- homeRosterPlayerIds
+        public List<int> AwayRosterPlayerIds { get; set; } = []; // <- awayRosterPlayerIds
     }
 }

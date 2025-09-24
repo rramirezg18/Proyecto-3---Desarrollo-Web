@@ -1,13 +1,15 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators'; // 👈 añade esto
 import { Team } from '../models/team';
 
 @Injectable({
   providedIn: 'root'
 })
 export class TeamService {
-  private apiUrl = 'http://localhost:5003/api/teams'; // 👈 Ajusta según tu backend
+  //private apiUrl = 'http://localhost:5003/api/teams';
+  private apiUrl = '/api/teams';
 
   constructor(private http: HttpClient) {}
 
@@ -24,6 +26,12 @@ export class TeamService {
     return this.http.get<{ items: Team[]; totalCount: number }>(
       `${this.apiUrl}${params}`
     );
+  }
+
+  // ✅ Helper para “traer todos” (útil para selects)
+  getAll(): Observable<Team[]> {
+    // pide una página grande; ajusta el pageSize si tu API lo limita
+    return this.getTeams(1, 1000, '').pipe(map(r => r.items));
   }
 
   // ✅ Obtener detalle de un equipo
