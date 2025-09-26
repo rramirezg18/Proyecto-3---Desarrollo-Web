@@ -1,3 +1,4 @@
+// src/app/features/scoreboard/scoreboard/scoreboard.ts
 import { Component, computed, effect, inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
@@ -13,11 +14,13 @@ import { TimerComponent } from '../../../shared/timer/timer';
 import { QuarterIndicatorComponent } from '../../../shared/quarter-indicator/quarter-indicator';
 import { FoulsPanelComponent } from '../../../shared/fouls-panel/fouls-panel';
 import { TopbarComponent } from '../../../shared/topbar/topbar';
-import { AdminMenuComponent } from '../../../shared/admin-menu/admin-menu'; // 👈 IMPORT NECESARIO
+import { AdminMenuComponent } from '../../../shared/admin-menu/admin-menu';
 
 @Component({
   selector: 'app-scoreboard',
   standalone: true,
+  templateUrl: './scoreboard.html',
+  styleUrls: ['./scoreboard.css'],
   imports: [
     CommonModule,
     MatButtonModule,
@@ -26,10 +29,8 @@ import { AdminMenuComponent } from '../../../shared/admin-menu/admin-menu'; // �
     QuarterIndicatorComponent,
     FoulsPanelComponent,
     TopbarComponent,
-    AdminMenuComponent, // 👈 AGREGA AQUÍ TAMBIÉN
-  ],
-  templateUrl: './scoreboard.html',
-  styleUrls: ['./scoreboard.css']
+    AdminMenuComponent
+  ]
 })
 export class ScoreboardComponent {
   private route = inject(ActivatedRoute);
@@ -65,8 +66,9 @@ export class ScoreboardComponent {
         this.realtime.score.set({ home: m.homeScore, away: m.awayScore });
         this.homeName = m.homeTeam || 'A TEAM';
         this.awayName = m.awayTeam || 'B TEAM';
+        if (typeof m.quarter === 'number') this.realtime.quarter.set(m.quarter); // ✅ set inicial
         this.realtime.hydrateTimerFromSnapshot(m.timer);
-        if (m?.fouls) this.realtime.hydrateFoulsFromSnapshot(m.fouls);
+        if (m?.fouls) this.realtime.hydrateFoulsFromSnapshot({ home: m.homeFouls ?? 0, away: m.awayFouls ?? 0 });
       }
     });
 

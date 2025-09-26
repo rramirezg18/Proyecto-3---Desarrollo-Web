@@ -1,10 +1,12 @@
 import { ApplicationConfig, APP_INITIALIZER, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { provideRouter /*, withDebugTracing*/ } from '@angular/router';
+import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
+
 import { provideClientHydration } from '@angular/platform-browser';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
+
 import { authTokenInterceptor } from './core/interceptors/auth-token.interceptor';
 import { installStorageDebugging } from './core/debug/debug-storage';
 
@@ -20,7 +22,7 @@ function initDebugFactory() {
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideRouter(routes /*, withDebugTracing()*/),
+    provideRouter(routes),
     provideClientHydration(),
     provideHttpClient(withFetch(), withInterceptors([authTokenInterceptor])),
     provideNoopAnimations(),

@@ -9,17 +9,17 @@ export class RealtimeService {
   private readonly isBrowser =
     typeof window !== 'undefined' && typeof document !== 'undefined';
 
-  //estado público
+  // Estado público
   score = signal<{ home: number; away: number }>({ home: 0, away: 0 });
   timeLeft = signal(0);
   timerRunning = signal(false);
   quarter = signal(1);
 
-  // Tiempo de timeout
+  // Timeout
   timeoutLeft = signal(0);
   timeoutRunning = signal(false);
 
-  //faltas
+  // Faltas
   fouls = signal<{ home: number; away: number }>({ home: 0, away: 0 });
 
   gameOver = signal<{ home: number; away: number; winner: 'home'|'away'|'draw' } | null>(null);
@@ -29,7 +29,7 @@ export class RealtimeService {
   private timeoutEndsAt?: number;
   private timeoutTick?: any;
 
-  //audio
+  // audio
   private audioCtx?: AudioContext;
   public beep() { this.playBuzzer(); }
 
@@ -68,7 +68,7 @@ export class RealtimeService {
   }
   private stopTick() { if (this.tick) { clearInterval(this.tick); this.tick = undefined; } }
 
-  //Timeout
+  // Timeout
   startTimeout(seconds: number, onDone?: () => void) {
     this.stopTimeout();
     if (seconds <= 0) return;
@@ -84,14 +84,12 @@ export class RealtimeService {
       }
     }, 200);
   }
-
   private stopTimeout() {
     if (this.timeoutTick) { clearInterval(this.timeoutTick); this.timeoutTick = undefined; }
     this.timeoutEndsAt = undefined;
     this.timeoutLeft.set(0);
     this.timeoutRunning.set(false);
   }
-
 
   hydrateTimerFromSnapshot(snap?: { running: boolean; remainingSeconds: number; quarterEndsAtUtc?: string | null; quarter?: number; }) {
     if (!snap) return;
@@ -113,7 +111,6 @@ export class RealtimeService {
     }
   }
 
- 
   hydrateFoulsFromSnapshot(snap?: { home: number; away: number }) {
     if (!snap) return;
     this.fouls.set({ home: snap.home ?? 0, away: snap.away ?? 0 });
@@ -133,14 +130,15 @@ export class RealtimeService {
       this.score.set({ home: s.homeScore, away: s.awayScore });
     });
 
-    // Timer
-    this.hub.on('timerStarted', (t: { quarterEndsAtUtc: string; remainingSeconds: number }) => {
-      this.stopTimeout();
-      this.timeLeft.set(t.remainingSeconds);
-      this.timerRunning.set(true);
-      this.endsAt = Date.now() + t.remainingSeconds * 3000;
-      this.startTick();
-    });
+   // Timer
+this.hub.on('timerStarted', (t: { quarterEndsAtUtc: string; remainingSeconds: number }) => {
+  this.stopTimeout();
+  this.timeLeft.set(t.remainingSeconds);
+  this.timerRunning.set(true);
+  // ❌ estaba * 3000
+  this.endsAt = Date.now() + t.remainingSeconds * 1000;  // ✅ 1000 ms por segundo
+  this.startTick();
+});
     this.hub.on('timerPaused', (t: { remainingSeconds: number }) => {
       this.timeLeft.set(t.remainingSeconds);
       this.timerRunning.set(false);
@@ -167,7 +165,7 @@ export class RealtimeService {
       if (typeof p.quarter === 'number') this.quarter.set(p.quarter);
     });
 
-  
+    // Fouls
     this.hub.on('foulsUpdated', (p: { homeFouls: number; awayFouls: number }) => {
       this.fouls.set({ home: p.homeFouls, away: p.awayFouls });
     });

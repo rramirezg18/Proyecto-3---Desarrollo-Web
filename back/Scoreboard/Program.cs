@@ -2,16 +2,18 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Security.Claims;
 
 using Scoreboard.Infrastructure;
 using Scoreboard.Hubs;
 
-// 👇 importa namespaces de repos y services
+// Repos & Services
 using Scoreboard.Repositories;
 using Scoreboard.Repositories.Interfaces;
 using Scoreboard.Services;
 using Scoreboard.Services.Interfaces;
 
+// Aliases entidades
 using TeamEntity  = Scoreboard.Models.Entities.Team;
 using MatchEntity = Scoreboard.Models.Entities.Match;
 
@@ -26,9 +28,10 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// 3) SignalR
 builder.Services.AddSignalR();
 
-// 3) CORS Angular dev server
+// 4) CORS para Angular dev server
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("DevCors", policy =>
@@ -40,10 +43,10 @@ builder.Services.AddCors(options =>
     });
 });
 
-// 4) Runtime del reloj en memoria
+// 5) Runtime del reloj en memoria
 builder.Services.AddSingleton<IMatchRunTime, MatchRunTime>();
 
-// 5) 👇 Registro de dependencias de tus repos y servicios
+// 6) Repos/Servicios
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -51,28 +54,77 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IMenuRepository, MenuRepository>();
 builder.Services.AddScoped<IMenuService, MenuService>();
 
-// 6) 🔑 Configuración JWT
+// 7) JWT
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var keyBytes = Encoding.UTF8.GetBytes(jwtSettings["Key"] ?? "SuperSecretKey123!");
 
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme    = JwtBearerDefaults.AuthenticationScheme;
 })
 .AddJwtBearer(options =>
 {
     options.RequireHttpsMetadata = false;
     options.SaveToken = true;
+
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = false,
-        ValidateAudience = false,
-        ValidateLifetime = true,
+        ValidateIssuer           = false,
+        ValidateAudience         = false,
+        ValidateLifetime         = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings["Issuer"],
-        ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(keyBytes)
+        IssuerSigningKey         = new SymmetricSecurityKey(keyBytes),
+
+        // Para [Authorize(Roles="Admin")]
+        RoleClaimType = ClaimTypes.Role,
+        NameClaimType = ClaimTypes.Name
+    };
+
+    // Duplica 'role' / 'roles' -> ClaimTypes.Role y log de diagnóstico
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = ctx =>
+        {
+            if (ctx.Principal?.Identity is ClaimsIdentity id)
+            {
+                var list = new List<string>();
+
+                // role (string plano)
+                list.AddRange(id.FindAll("role").Select(c => c.Value));
+
+                // roles (json array opcional)
+                var rolesJson = id.FindFirst("roles")?.Value;
+                if (!string.IsNullOrWhiteSpace(rolesJson))
+                {
+                    try
+                    {
+                        var arr = System.Text.Json.JsonSerializer.Deserialize<string[]>(rolesJson) ?? [];
+                        list.AddRange(arr);
+                    } catch { /* ignore */ }
+                }
+
+                foreach (var r in list.Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    var norm = (r.Equals("admin", StringComparison.OrdinalIgnoreCase) ||
+                                r.Equals("administrador", StringComparison.OrdinalIgnoreCase))
+                               ? "Admin" : r;
+
+                    if (!id.HasClaim(ClaimTypes.Role, norm))
+                        id.AddClaim(new Claim(ClaimTypes.Role, norm));
+                }
+
+                // Log (útil para depurar; puedes quitarlo luego)
+                try
+                {
+                    Console.WriteLine("== JWT Claims ==");
+                    foreach (var c in id.Claims) Console.WriteLine($"  {c.Type} = {c.Value}");
+                    Console.WriteLine("===============");
+                } catch { }
+            }
+
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -80,6 +132,7 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+// 8) Pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -90,16 +143,16 @@ if (app.Environment.IsDevelopment())
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-app.UseAuthentication(); // 👈 importante: antes de Authorization
+app.UseAuthentication();   // ← antes que Authorization
 app.UseAuthorization();
-
-
 
 app.MapControllers();
 app.MapHub<ScoreHub>("/hubs/score");
+
+// SPA fallback
 app.MapFallbackToFile("/index.html");
 
-// Migraciones + seed
+// 9) Migraciones + seed
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -107,7 +160,7 @@ using (var scope = app.Services.CreateScope())
 
     if (!db.Teams.Any())
     {
-        var home = new TeamEntity { Name = "Locales", Color = "#0044FF" };
+        var home = new TeamEntity { Name = "Locales",    Color = "#0044FF" };
         var away = new TeamEntity { Name = "Visitantes", Color = "#FF3300" };
         db.AddRange(home, away);
         await db.SaveChangesAsync();
@@ -120,8 +173,8 @@ using (var scope = app.Services.CreateScope())
             QuarterDurationSeconds = 600,
             HomeScore = 0,
             AwayScore = 0,
-            Period = 1,
-            DateMatch = DateTime.Now
+            Period    = 1,
+            DateMatch = DateTime.UtcNow
         });
         await db.SaveChangesAsync();
     }

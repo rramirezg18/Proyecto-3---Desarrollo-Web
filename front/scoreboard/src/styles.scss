@@ -1,12 +1,12 @@
-/* src/styles.scss — versión Material 3 con @use */
-
+/* src/styles.scss — Angular Material 3 con @use */
 @use '@angular/material' as mat;
 
-/* Opcional pero buena práctica: inicializa núcleo */
+/* Inicializa núcleo Material */
 @include mat.core();
 
-/* Define el tema global (light) */
+/* Tema global (light) */
 :root {
+  --bg: #ffffff;
   @include mat.theme((
     color: (
       theme-type: light,
@@ -22,14 +22,34 @@
 html, body { height: 100%; }
 
 body {
-  /* Si quieres usar las vars del sistema de Material */
-  background-color: var(--mat-sys-surface);
+  /* Blanco global por defecto */
+  background-color: var(--bg);
   color: var(--mat-sys-on-surface);
   font: var(--mat-sys-body-medium);
-
-  /* O tu propio fondo */
-  /* background: #0b0b0b; */
-
   margin: 0;
   font-family: Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ---- OVERRIDES SOLO PARA LA VISTA DEL SCOREBOARD ---- */
+
+/* 1) Pinta de negro el body y el contenedor de Material */
+body.scoreboard,
+body.scoreboard .mat-app-background {
+  background-color: #0b0b0b !important;
+  color: #fff !important;
+}
+
+/* 2) Evita que wrappers reintroduzcan blanco */
+body.scoreboard app-root,
+body.scoreboard app-scoreboard,
+body.scoreboard .mat-drawer-content,
+body.scoreboard .content {
+  background: transparent !important;
+}
+
+/* 3) Topbar/Toolbar transparentes en el scoreboard */
+body.scoreboard app-topbar,
+body.scoreboard .mat-toolbar {
+  background: transparent !important;
+  box-shadow: none !important;
 }

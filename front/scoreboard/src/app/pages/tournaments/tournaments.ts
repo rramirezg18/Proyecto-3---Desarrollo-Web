@@ -80,7 +80,7 @@ export class TournamentsComponent implements OnInit {
       awayTeamId: new FormControl<number | null>(null, { nonNullable: false, validators: [Validators.required] }),
       dateMatch: new FormControl<Date | null>(new Date(), { nonNullable: false, validators: [Validators.required] }),
       quarterDurationSeconds: new FormControl<number | null>(600, { nonNullable: false, validators: [Validators.required, Validators.min(60)] }),
-      status: new FormControl<string | null>('Programado', { nonNullable: false, validators: [Validators.required] }),
+      status: new FormControl<string | null>('Scheduled', { nonNullable: false, validators: [Validators.required] }), // 👈 normalizado
       homeRoster: new FormControl<number[]>([], { nonNullable: true }),
       awayRoster: new FormControl<number[]>([], { nonNullable: true }),
     });
@@ -136,6 +136,7 @@ export class TournamentsComponent implements OnInit {
       quarterDurationSeconds: v.quarterDurationSeconds!,
       homeRosterPlayerIds: v.homeRoster ?? [],
       awayRosterPlayerIds: v.awayRoster ?? []
+      // (status lo puede decidir el backend; si aceptara, aquí enviarías v.status!)
     };
 
     this.matchesSvc.programar(dto).subscribe({
@@ -145,7 +146,8 @@ export class TournamentsComponent implements OnInit {
           dateMatch: new Date(),
           quarterDurationSeconds: 600,
           homeRoster: [],
-          awayRoster: []
+          awayRoster: [],
+          status: 'Scheduled'
         }, { emitEvent: false });
         this.homePlayers.set([]); this.awayPlayers.set([]);
         this.refreshLists();
@@ -170,10 +172,6 @@ export class TournamentsComponent implements OnInit {
     this.router.navigate(['/control', row.id]);
   }
 
-  /**
-   * Simula marcador y faltas, y cierra el partido con /api/matches/{id}/finish
-   * Registramos faltas reales en BD para que la tabla muestre conteo.
-   */
   finishSim(row: MatchListItem): void {
     // 1) Traer detalle RAW para tener homeTeamId/awayTeamId
     this.http.get<any>(`${this.base}/${row.id}`).subscribe({
@@ -187,20 +185,16 @@ export class TournamentsComponent implements OnInit {
         const homeFoulsCount = 8 + Math.floor(Math.random() * 9); // 8..16
         const awayFoulsCount = 8 + Math.floor(Math.random() * 9); // 8..16
 
-        // Eventos de score (opcional): registramos algunos tiros de 2 y 3
         const makeScoreEvents = (teamId: number, total: number): ScoreEventItem[] => {
           const events: ScoreEventItem[] = [];
           let sum = 0;
           while (sum < total) {
-            const shot = Math.random() < 0.3 ? 3 : 2; // mezcla 2s y 3s
+            const shot = Math.random() < 0.3 ? 3 : 2;
             if (sum + shot > total) break;
             events.push({ teamId, points: shot });
             sum += shot;
           }
-          // Si faltó 1 punto para exacto, lo rellenamos (free throw)
-          if (sum < total) {
-            events.push({ teamId, points: 1 });
-          }
+          if (sum < total) events.push({ teamId, points: 1 });
           return events;
         };
 
@@ -209,7 +203,6 @@ export class TournamentsComponent implements OnInit {
           ...makeScoreEvents(awayTeamId, awayScore),
         ];
 
-        // Faltas: sólo importa teamId y fecha
         const nowIso = new Date().toISOString();
         const fouls: FoulItem[] = [
           ...Array.from({ length: homeFoulsCount }, () => ({ teamId: homeTeamId, dateRegister: nowIso })),

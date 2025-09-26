@@ -33,10 +33,10 @@
     <mat-form-field appearance="outline">
       <mat-label>Estado</mat-label>
       <mat-select formControlName="status">
-        <mat-option value="Programado">Programado</mat-option>
-        <mat-option value="Live">Live</mat-option>
-        <mat-option value="Finished">Finished</mat-option>
-        <mat-option value="Canceled">Canceled</mat-option>
+        <mat-option [value]="'Scheduled'">Programado</mat-option>
+        <mat-option [value]="'Live'">En juego</mat-option>
+        <mat-option [value]="'Finished'">Finalizado</mat-option>
+        <mat-option [value]="'Canceled'">Cancelado</mat-option>
       </mat-select>
     </mat-form-field>
   </div>
@@ -113,7 +113,7 @@
         mat-stroked-button
         color="primary"
         [routerLink]="['/control', row.id]"
-        *ngIf="row.status === 'Scheduled' || row.status === 'Live'">
+        *ngIf="row.status === 'Scheduled' || row.status === 'Live' || row.status === 'Programado' || row.status === 'En juego'">
         Jugar
       </button>
 
@@ -121,13 +121,12 @@
         mat-stroked-button
         color="accent"
         (click)="finishSim(row)"
-        *ngIf="row.status !== 'Finished'">
+        *ngIf="row.status !== 'Finished' && row.status !== 'Finalizado'">
         Simular y finalizar
       </button>
     </td>
   </ng-container>
 
-  <!-- Usa displayedColumns del componente -->
   <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
   <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
 </table>
