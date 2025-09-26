@@ -1,4 +1,3 @@
-// src/app/features/control/control-panel/match.dialog.ts
 import { Component, OnInit, Inject, inject, signal } from '@angular/core';
 import { CommonModule, NgFor, NgIf } from '@angular/common';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -14,7 +13,6 @@ import {
   selector: 'app-pick-match-dialog',
   standalone: true,
   imports: [CommonModule, MatDialogModule, MatButtonModule, NgIf, NgFor],
-  // ⬇️ Plantilla inline (ya no usa templateUrl)
   template: `
     <h2 mat-dialog-title>Elegir partido</h2>
 
@@ -67,14 +65,11 @@ export class PickMatchDialogComponent implements OnInit {
 
   constructor(@Inject(MAT_DIALOG_DATA) public data: unknown) {}
 
-  ngOnInit(): void {
-    this.load();
-  }
+  ngOnInit(): void { this.load(); }
 
   private load(): void {
     this.matchesSvc.list({ page: 1, pageSize: 200 }).subscribe({
       next: (resp: PaginatedMatches) => {
-        // Solo partidos jugables: Scheduled o Live
         const filtered = (resp.items ?? []).filter(r => this.canPlay(r));
         this.rows.set(filtered);
       },
@@ -83,8 +78,12 @@ export class PickMatchDialogComponent implements OnInit {
   }
 
   canPlay(row: MatchListItem): boolean {
-    const s = (row.status ?? '').toLowerCase();
-    return s === 'scheduled' || s === 'live';
+    const s = (row.status ?? '').toLowerCase().trim();
+    // Normaliza equivalencias en español/inglés
+    const norm = s === 'programado' ? 'scheduled'
+               : s === 'en juego'   ? 'live'
+               : s;
+    return norm === 'scheduled' || norm === 'live';
   }
 
   play(row: MatchListItem): void {
@@ -92,7 +91,5 @@ export class PickMatchDialogComponent implements OnInit {
     this.dialogRef.close({ id: row.id });
   }
 
-  close(): void {
-    this.dialogRef.close(undefined);
-  }
+  close(): void { this.dialogRef.close(undefined); }
 }

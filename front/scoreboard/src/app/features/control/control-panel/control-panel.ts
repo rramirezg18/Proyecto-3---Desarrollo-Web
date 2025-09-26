@@ -1,3 +1,4 @@
+// src/app/features/control/control-panel/control-panel.ts
 import { Component, computed, effect, inject, OnDestroy, PLATFORM_ID, signal } from '@angular/core';
 import { isPlatformBrowser, NgIf } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -248,6 +249,32 @@ export class ControlPanelComponent implements OnDestroy {
           timer: 1200,
           showConfirmButton: false
         });
+      },
+      // 🔧 manejo claro para 403 (no Admin) + genérico
+      error: async (e) => {
+        const status = e?.status;
+        if (status === 403) {
+          await Swal.fire({
+            icon: 'error',
+            title: 'Start timer',
+            text: 'Necesitas rol Admin para iniciar el reloj.',
+            confirmButtonText: 'OK'
+          });
+        } else if (status === 401) {
+          await Swal.fire({
+            icon: 'warning',
+            title: 'Sesión requerida',
+            text: 'Vuelve a iniciar sesión para continuar.',
+            confirmButtonText: 'Ir a login'
+          });
+          this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
+        } else {
+          await Swal.fire({
+            icon: 'error',
+            title: 'Error al iniciar',
+            text: e?.error ?? e?.message ?? 'Error desconocido'
+          });
+        }
       }
     });
   }

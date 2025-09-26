@@ -71,7 +71,7 @@ export class TournamentsComponent implements OnInit, OnDestroy {
     awayTeamId: this.fb.control<number | null>(null, { validators: [Validators.required], nonNullable: false }),
     dateMatch: this.fb.control<Date | null>(new Date(), { validators: [Validators.required], nonNullable: false }),
     quarterDurationSeconds: this.fb.control<number | null>(600, { validators: [Validators.required, Validators.min(60)], nonNullable: false }),
-    status: this.fb.control<string | null>('Programado', { validators: [Validators.required], nonNullable: false }),
+    status: this.fb.control<string | null>('Scheduled', { validators: [Validators.required], nonNullable: false }),
     homeRoster: this.fb.control<number[]>([], { nonNullable: true }),
     awayRoster: this.fb.control<number[]>([], { nonNullable: true }),
   });
@@ -85,8 +85,8 @@ export class TournamentsComponent implements OnInit, OnDestroy {
   loading = signal<boolean>(true);
   matches = signal<MatchListItem[]>([]);
   totalRaw = signal<number>(0);
-  search = new FormControl<string>('', { nonNullable: true });
 
+  search = new FormControl<string>('', { nonNullable: true });
   pageIndex = signal<number>(0);
   pageSize  = signal<number>(10);
 
@@ -207,6 +207,7 @@ export class TournamentsComponent implements OnInit, OnDestroy {
       quarterDurationSeconds: v.quarterDurationSeconds!,
       homeRosterPlayerIds: v.homeRoster ?? [],
       awayRosterPlayerIds: v.awayRoster ?? []
+      // (status lo puede decidir el backend; si aceptara, aquí enviarías v.status!)
     };
 
     this.matchesSvc.programar(dto).subscribe({
@@ -216,7 +217,8 @@ export class TournamentsComponent implements OnInit, OnDestroy {
           dateMatch: new Date(),
           quarterDurationSeconds: 600,
           homeRoster: [],
-          awayRoster: []
+          awayRoster: [],
+          status: 'Scheduled'
         }, { emitEvent: false });
         this.homePlayers.set([]); this.awayPlayers.set([]);
         this.loadMatches();

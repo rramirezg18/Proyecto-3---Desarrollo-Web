@@ -3,15 +3,13 @@ import { HttpClient } from '@angular/common/http';
 import { isPlatformBrowser } from '@angular/common';
 import { Observable } from 'rxjs';
 import { LoginResponseDto } from '../models/login-response.dto';
+import { decodeJwt } from '../utils/jwt'; // 👈 ruta correcta desde /core/services
 
 @Injectable({ providedIn: 'root' })
 export class AuthenticationService {
-  //private apiUrl = 'http://localhost:5003/api/auth';
-  //private apiUrl = 'http://localhost:8080/api/auth';
-  private apiUrl = '/api/auth';
+  private http = inject(HttpClient);
   private platformId = inject(PLATFORM_ID);
-
-  constructor(private http: HttpClient) {}
+  private apiUrl = '/api/auth';
 
   private storage(): Storage | null {
     if (!isPlatformBrowser(this.platformId)) return null;
@@ -41,17 +39,29 @@ export class AuthenticationService {
     return s?.getItem('token') ?? null;
   }
 
+  /** Admin si:
+   *  - el objeto user guardado tiene role.name === 'admin', o
+   *  - el JWT trae el claim role/roles con 'Admin'
+   */
   isAdmin(): boolean {
+    // 1) user guardado
     const u = this.getUser();
-    return u?.role?.name?.toLowerCase() === 'admin';
+    const roleName = u?.role?.name;
+    if (typeof roleName === 'string' && roleName.toLowerCase() === 'admin') return true;
+
+    // 2) token (claim)
+    const token = this.getToken();
+    if (!token) return false;
+
+    const payload: any = decodeJwt(token) || {};
+    // distintos backends usan 'role' o 'roles'
+    const roles = Array.isArray(payload.roles) ? payload.roles : [payload.role].filter(Boolean);
+    return roles.map((r: string) => String(r).toLowerCase()).includes('admin');
   }
 
   logout() {
-  console.error('[AUTH.logout] called');
-  console.trace('[AUTH.logout trace]');
-  const s = this.storage();
-  s?.removeItem('user');
-  s?.removeItem('token');
-}
-
+    const s = this.storage();
+    s?.removeItem('user');
+    s?.removeItem('token');
+  }
 }
