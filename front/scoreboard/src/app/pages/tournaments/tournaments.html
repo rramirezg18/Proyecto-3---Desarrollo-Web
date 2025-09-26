@@ -64,74 +64,67 @@
 
 <hr />
 
-<!-- Toolbar de listado: búsqueda + total -->
+<!-- Toolbar de listado -->
 <div class="list-toolbar">
+  <button mat-stroked-button (click)="focusSearch(searchBox)">
+    <mat-icon>search</mat-icon>&nbsp;Filtrar
+  </button>
+
+  <span class="spacer"></span>
+
   <mat-form-field appearance="outline" class="search">
     <mat-label>Buscar partido</mat-label>
-    <input matInput placeholder="Equipo o estado…" [formControl]="search" />
+    <input #searchBox matInput placeholder="Equipo o estado…" [formControl]="search" />
   </mat-form-field>
 
-  <div class="spacer"></div>
   <div class="total" *ngIf="!loading()">Total: {{ paginatorLength() }}</div>
 </div>
 
 <!-- Estado de carga -->
 <div class="loading" *ngIf="loading()">Cargando partidos…</div>
 
-<!-- Tabla (usa las filas filtradas rows()) -->
+<!-- Tabla -->
 <table mat-table [dataSource]="rows()" class="mat-elevation-z1 full" *ngIf="!loading()">
-
-  <!-- Fecha -->
   <ng-container matColumnDef="dateMatch">
     <th mat-header-cell *matHeaderCellDef> Fecha </th>
     <td mat-cell *matCellDef="let row">{{ row.dateMatch | date:'medium' }}</td>
   </ng-container>
 
-  <!-- Estado -->
   <ng-container matColumnDef="status">
     <th mat-header-cell *matHeaderCellDef> Estado </th>
     <td mat-cell *matCellDef="let row">{{ row.status }}</td>
   </ng-container>
 
-  <!-- Local -->
   <ng-container matColumnDef="home">
     <th mat-header-cell *matHeaderCellDef> Local </th>
     <td mat-cell *matCellDef="let row">{{ row.homeTeam }}</td>
   </ng-container>
 
-  <!-- Visita -->
   <ng-container matColumnDef="away">
     <th mat-header-cell *matHeaderCellDef> Visita </th>
     <td mat-cell *matCellDef="let row">{{ row.awayTeam }}</td>
   </ng-container>
 
-  <!-- Marcador -->
   <ng-container matColumnDef="score">
     <th mat-header-cell *matHeaderCellDef> Marcador </th>
     <td mat-cell *matCellDef="let row">{{ row.homeScore }} - {{ row.awayScore }}</td>
   </ng-container>
 
-  <!-- Faltas -->
   <ng-container matColumnDef="fouls">
     <th mat-header-cell *matHeaderCellDef> Faltas </th>
     <td mat-cell *matCellDef="let row">{{ row.homeFouls }} - {{ row.awayFouls }}</td>
   </ng-container>
 
-  <!-- Acciones -->
   <ng-container matColumnDef="actions">
     <th mat-header-cell *matHeaderCellDef> Acciones </th>
     <td mat-cell *matCellDef="let row">
       <button mat-stroked-button color="primary"
               [routerLink]="['/control', row.id]"
-              *ngIf="row.status === 'Scheduled' || row.status === 'Live'">
-        Jugar
-      </button>
+              *ngIf="row.status === 'Scheduled' || row.status === 'Live'">Jugar</button>
 
       <button mat-stroked-button color="accent"
               (click)="finishSim(row)"
-              *ngIf="row.status !== 'Finished'">
-        Simular y finalizar
-      </button>
+              *ngIf="row.status !== 'Finished'">Simular y finalizar</button>
     </td>
   </ng-container>
 
@@ -139,17 +132,15 @@
   <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
 </table>
 
-<!-- Vacío -->
 <div class="empty" *ngIf="!loading() && rows().length === 0">
   No hay partidos para mostrar.
 </div>
 
-<!-- Paginador (usa longitud real según filtro/servidor) -->
 <mat-paginator
   [length]="paginatorLength()"
   [pageIndex]="pageIndex()"
   [pageSize]="pageSize()"
-  [pageSizeOptions]="[5, 10, 20, 50]"
+  [pageSizeOptions]="[5,10,20,50]"
   [showFirstLastButtons]="true"
   (page)="pageChange($event)">
 </mat-paginator>
