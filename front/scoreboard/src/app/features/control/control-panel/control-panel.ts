@@ -1,5 +1,5 @@
 import { Component, computed, effect, inject, OnDestroy, PLATFORM_ID, signal } from '@angular/core';
-import { isPlatformBrowser, NgIf, NgClass, NgFor } from '@angular/common';
+import { isPlatformBrowser, NgIf } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs/operators';
@@ -16,13 +16,14 @@ import { AuthenticationService } from '../../../core/services/authentication.ser
 // Diálogos
 import { NewGameDialogComponent } from '../../matches/new-game-dialog';
 import { RegisterTeamDialogComponent } from '../../teams/register-team-dialog';
+import { PickMatchDialogComponent } from './match.dialog'; // 👈 diálogo "Elegir partido"
 
 type Possession = 'none' | 'home' | 'away';
 
 @Component({
   selector: 'app-control-panel',
   standalone: true,
-  imports: [RouterLink, MatButtonModule, MatDialogModule, NgIf, NgClass, NgFor],
+  imports: [RouterLink, MatButtonModule, MatDialogModule, NgIf],
   templateUrl: './control-panel.html',
   styleUrls: ['./control-panel.css']
 })
@@ -44,6 +45,13 @@ export class ControlPanelComponent implements OnDestroy {
   homeName = 'HOME';
   awayName = 'AWAY';
 
+  // Estado del partido y modo solo-lectura
+  status = signal<string>('Scheduled');
+  readOnly = computed(() => {
+    const s = (this.status() || '').toLowerCase();
+    return s === 'finished' || s === 'canceled' || s === 'suspended';
+  });
+
   // Cuarto real desde RealtimeService
   period = computed(() => this.rt.quarter());
 
@@ -56,8 +64,8 @@ export class ControlPanelComponent implements OnDestroy {
   homeFouls = computed(() => this.rt.fouls().home);
   awayFouls = computed(() => this.rt.fouls().away);
 
-  // Sólo se puede anotar cuando corre el timer
-  canScore = computed(() => this.rt.timerRunning());
+  // Sólo se puede anotar cuando corre el timer y no está bloqueado
+  canScore = computed(() => this.rt.timerRunning() && !this.readOnly());
 
   // Reloj mm:ss desde timeLeft()
   clock = computed(() => {
@@ -69,8 +77,8 @@ export class ControlPanelComponent implements OnDestroy {
   // Auto-advance helpers
   private prevSecs = -1;
   private armed = true;
-  private zeroGuardUntil = 0;   // ventana para ignorar 0 tras stop/reset
-  private prevRunning = false;  // estado anterior del timer
+  private zeroGuardUntil = 0;
+  private prevRunning = false;
 
   constructor() {
     // Sincroniza marcador local
@@ -93,11 +101,9 @@ export class ControlPanelComponent implements OnDestroy {
       const running = this.rt.timerRunning();
       const guardActive = Date.now() < this.zeroGuardUntil;
 
-      // Sólo auto-avanzar si veníamos corriendo y llegamos naturalmente a 0
       if (!guardActive && this.prevSecs > 0 && secs === 0 && this.prevRunning) {
         this.tryAutoAdvance();
       }
-
       if (secs > 0) this.armed = true;
 
       this.prevSecs = secs;
@@ -117,11 +123,11 @@ export class ControlPanelComponent implements OnDestroy {
           this.awayName = m.awayTeam ?? 'AWAY';
           this.homeScore.set(m.homeScore ?? 0);
           this.awayScore.set(m.awayScore ?? 0);
+          this.status.set(m.status ?? 'Scheduled'); // 👈 hidrata estado
 
           if (typeof m.quarter === 'number') this.rt.quarter.set(m.quarter);
           if (m.timer) this.rt.hydrateTimerFromSnapshot({ ...m.timer, quarter: m.quarter });
 
-          // hidratar faltas si el GET las trae (opcional)
           if (m.fouls) this.rt.hydrateFoulsFromSnapshot(m.fouls);
         },
         error: (e) => console.error('getMatch error', e)
@@ -145,35 +151,54 @@ export class ControlPanelComponent implements OnDestroy {
 
   ngOnDestroy(): void { this.rt.disconnect(); }
 
-  // === Helpers de rol / navegación / sesión ===
+  // Rol
   get isAdmin(): boolean {
-    // Usa método del servicio si existe; si no, parsea localStorage
     try {
       if (typeof this.auth.isAdmin === 'function') return this.auth.isAdmin();
       const saved = localStorage.getItem('user');
       const user = saved ? JSON.parse(saved) : null;
       return user?.role?.name?.toLowerCase() === 'admin';
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   }
 
-  goScoreboard() {
-    this.router.navigate(['/score', this.matchId()]);
-  }
+  goScoreboard() { this.router.navigate(['/score', this.matchId()]); }
 
   logout() {
-    if (typeof this.auth.logout === 'function') {
-      this.auth.logout();
-    } else {
-      // fallback defensivo
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-    }
+    if (typeof this.auth.logout === 'function') this.auth.logout();
+    else { localStorage.removeItem('token'); localStorage.removeItem('user'); }
     this.router.navigate(['/login']);
   }
 
-  // === Reintento para oficializar fin de cuarto en backend ===
+  // Abrir diálogo para elegir partido
+  openPickMatch() {
+    const ref = this.dialog.open(PickMatchDialogComponent, {
+      width: '720px',
+      disableClose: false
+    });
+    ref.afterClosed().subscribe((row?: { id: number }) => {
+      if (!row) return;
+      this.router.navigate(['/control', row.id]);
+    });
+  }
+
+  // (compat) Si algún botón del HTML llama a newGame(), redirigimos al flujo por equipos registrados
+  newGame() { this.newGameFromRegistered(); }
+
+  // === Guard genérico para bloquear acciones si el partido está en solo-lectura
+  private denyIfLocked(): boolean {
+    if (!this.readOnly()) return false;
+    Swal.fire({
+      icon: 'info',
+      title: 'Partido bloqueado',
+      text: 'Este partido ya finalizó o no admite cambios.',
+      timer: 1600,
+      showConfirmButton: false,
+      position: 'top'
+    });
+    return true;
+  }
+
+  // === Backend: auto-advance
   private tryAutoAdvance(retry = 0) {
     const id = this.matchId();
     const prevQuarter = this.rt.quarter();
@@ -182,32 +207,13 @@ export class ControlPanelComponent implements OnDestroy {
       next: (res: any) => {
         const q = res?.quarter ?? prevQuarter;
         const ended = q > prevQuarter ? q - 1 : q;
-        if (ended < 4) {
-          this.showQuarterEndAlert(ended);
-        }
+        if (ended < 4) this.showQuarterEndAlert(ended);
       },
       error: (e) => {
-        if (retry < 8) {
-          setTimeout(() => this.tryAutoAdvance(retry + 1), 300);
-        } else {
-          console.warn('autoAdvanceQuarter no confirmó el fin del cuarto', e);
-        }
+        if (retry < 8) setTimeout(() => this.tryAutoAdvance(retry + 1), 300);
+        else console.warn('autoAdvanceQuarter no confirmó el fin del cuarto', e);
       }
     });
-  }
-
-  // === Flujo antiguo (manual por nombres) — SOLO ADMIN ===
-  newGame() {
-    if (!this.isAdmin) return;
-    const home = (prompt('Nombre equipo local:', this.homeName) ?? '').trim();
-    if (!home) return;
-    const away = (prompt('Nombre equipo visitante:', this.awayName) ?? '').trim();
-    if (!away) return;
-    const mins = Number(prompt('Duración del período (minutos):', '10') ?? '10');
-    const qsec = Number.isFinite(mins) && mins > 0 ? Math.round(mins * 60) : 600;
-
-    this.api.newGame({ homeName: home, awayName: away, quarterDurationSeconds: qsec })
-      .subscribe({ next: (res: any) => this.router.navigate(['/control', res.matchId]) });
   }
 
   // === Puntos
@@ -222,12 +228,14 @@ export class ControlPanelComponent implements OnDestroy {
 
   // Faltas
   foul(teamId: number | undefined, delta: 1 | -1) {
+    if (this.denyIfLocked()) return;
     if (!teamId) return;
     this.api.adjustFoul(this.matchId(), { teamId, delta }).subscribe();
   }
 
   // === Timer
   start() {
+    if (this.denyIfLocked()) return;
     this.api.startTimer(this.matchId()).subscribe({
       next: async () => {
         if (!isPlatformBrowser(this.platformId)) return;
@@ -245,15 +253,20 @@ export class ControlPanelComponent implements OnDestroy {
   }
 
   stop() {
+    if (this.denyIfLocked()) return;
     this.armed = false;
     this.prevSecs = 0;
     this.zeroGuardUntil = Date.now() + 1500;
     this.api.pauseTimer(this.matchId()).subscribe();
   }
 
-  resume() { this.api.resumeTimer(this.matchId()).subscribe(); }
+  resume() {
+    if (this.denyIfLocked()) return;
+    this.api.resumeTimer(this.matchId()).subscribe();
+  }
 
   reset() {
+    if (this.denyIfLocked()) return;
     this.armed = false;
     this.prevSecs = 0;
     this.zeroGuardUntil = Date.now() + 1500;
@@ -261,6 +274,7 @@ export class ControlPanelComponent implements OnDestroy {
   }
 
   timeout(sec: number) {
+    if (this.denyIfLocked()) return;
     if (this.rt.timeoutRunning()) return;
     this.stop();
     this.rt.startTimeout(sec, () => this.resume());
@@ -269,6 +283,7 @@ export class ControlPanelComponent implements OnDestroy {
   // Periodo (real)
   periodMinus() { /* no retroceder */ }
   periodPlus()  {
+    if (this.denyIfLocked()) return;
     const ended = this.rt.quarter();
     this.api.advanceQuarter(this.matchId()).subscribe({
       next: async () => { await this.showQuarterEndAlert(ended); }
@@ -362,9 +377,7 @@ export class ControlPanelComponent implements OnDestroy {
           data: { rows }
         });
       },
-      error: (e) => {
-        console.error('getStandings error', e);
-      }
+      error: (e) => console.error('getStandings error', e)
     });
   }
 }
