@@ -3,31 +3,31 @@
     <button mat-stroked-button (click)="goScoreboard()">⬅️ Ir al marcador</button>
 
     <!-- Solo ADMIN -->
-    <button mat-raised-button color="primary" *ngIf="isAdmin" (click)="newGame()">➕ Nuevo partido</button>
+    <button mat-raised-button color="primary" *ngIf="isAdmin" (click)="newGameFromRegistered()">➕ Nuevo partido</button>
     <button mat-raised-button color="primary" *ngIf="isAdmin" (click)="newGameFromRegistered()">🧩 Nuevo (equipos)</button>
     <button mat-raised-button color="accent"  *ngIf="isAdmin" (click)="registerTeam()">📝 Registrar equipo</button>
 
     <!-- Para ambos roles -->
     <button mat-stroked-button color="accent" (click)="showStandings()">🏆 Standings</button>
+
+    <!-- Elegir partido -->
+    <button mat-stroked-button color="primary" (click)="openPickMatch()">🎮 Elegir partido</button>
   </div>
 
   <div class="right">
     <button mat-raised-button color="warn" (click)="logout()">🔒 Logout</button>
   </div>
 </div>
+
 <div class="cp">
-  <!-- Toolbar superior -->
+  <!-- Toolbar superior gris -->
   <div class="toolbar">
-    <!--<button class="btn ghost">Help</button>-->
-   <!-- <button class="btn ghost">Options</button>-->
     <button class="btn" (click)="registerTeam()">Register Team</button>
     <button class="btn" (click)="newGameFromRegistered()">New Game (Teams)</button>
-    <!--<button class="btn ghost" (click)="newGame()">New Game (manual)</button>-->
     <button class="btn" (click)="showStandings()">Standings</button>
-
-    <!--<button class="btn">Correction</button> -->
     <button class="btn" (click)="rt.beep()">Buzzer</button>
-    <!--<button class="btn ghost">Exit</button>-->
+
+    <button class="btn" (click)="openPickMatch()">Elegir partido</button>
   </div>
 
   <!-- Centro: controles de tiempo -->
@@ -52,7 +52,6 @@
       <button class="btn" (click)="timeout(30)" [disabled]="rt.timeoutRunning() || !rt.timerRunning()">Timeout (0:30)</button>
       <button class="btn" (click)="timeout(60)" [disabled]="rt.timeoutRunning() || !rt.timerRunning()">Timeout (1:00)</button>
       <button class="btn" (click)="reset()">Reset</button>
-     <!--<button class="btn ghost">Show Time of Day</button>-->
     </div>
   </div>
 
@@ -67,15 +66,6 @@
       <button class="btn pos-btn" [class.active]="possession() === 'away'" (click)="posRight()">►</button>
     </div>
   </div>
-
-  <!-- BONUS (visual) 
-  <div class="section">
-    <div class="title">BONUS</div>
-    <div class="bonus">
-      <button class="lamp off" title="home bonus"></button>
-      <button class="lamp on" title="away bonus"></button>
-    </div>
-  </div>-->
 
   <!-- Periodo -->
   <div class="section">
@@ -104,7 +94,7 @@
         <button class="btn pos" [disabled]="!homeTeamId || !canScore()" (click)="add(homeTeamId,2)">+2</button>
       </div>
 
-      <!-- FOULS HOME (horizontal) -->
+      <!-- FOULS HOME -->
       <div class="sub fouls-title">FOULS</div>
       <div class="fouls-row">
         <button class="btn neg" [disabled]="!homeTeamId" (click)="foul(homeTeamId,-1)">-1</button>
@@ -128,7 +118,7 @@
         <button class="btn pos" [disabled]="!awayTeamId || !canScore()" (click)="add(awayTeamId,2)">+2</button>
       </div>
 
-      <!-- FOULS AWAY (horizontal) -->
+      <!-- FOULS AWAY -->
       <div class="sub fouls-title">FOULS</div>
       <div class="fouls-row">
         <button class="btn neg" [disabled]="!awayTeamId" (click)="foul(awayTeamId,-1)">-1</button>
