@@ -6,11 +6,11 @@ using Scoreboard.Hubs;
 using Scoreboard.Infrastructure;
 using Scoreboard.Models.DTOs;
 
-using MatchEntity = Scoreboard.Models.Entities.Match;
-using TeamEntity = Scoreboard.Models.Entities.Team;
+using MatchEntity      = Scoreboard.Models.Entities.Match;
+using TeamEntity       = Scoreboard.Models.Entities.Team;
 using ScoreEventEntity = Scoreboard.Models.Entities.ScoreEvent;
-using FoulEntity = Scoreboard.Models.Entities.Foul;
-using TeamWinEntity = Scoreboard.Models.Entities.TeamWin;
+using FoulEntity       = Scoreboard.Models.Entities.Foul;
+using TeamWinEntity    = Scoreboard.Models.Entities.TeamWin;
 
 namespace Scoreboard.Controllers;
 
@@ -18,24 +18,33 @@ namespace Scoreboard.Controllers;
 [Route("api/matches")]
 public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatchRunTime rt) : ControllerBase
 {
-    // DTOs locales (evitas crear archivos si no quieres)
+    // =======================
+    //  DTOs locales del controller
+    // =======================
     public record ProgramarPartidoDto(int HomeTeamId, int AwayTeamId, DateTime DateMatchUtc, int? QuarterDurationSeconds);
     public record ReprogramarDto(DateTime NewDateMatchUtc);
     public record StartTimerDto(int? QuarterDurationSeconds);
 
+    // Para /finish (opcionalmente recibir eventos)
+    public record ScoreEventItem(int TeamId, int? PlayerId, int Points, DateTime DateRegister);
+    public record FoulItem(int TeamId, int? PlayerId, DateTime DateRegister);
+    public record FinishMatchDto(
+        int HomeScore, int AwayScore, int HomeFouls, int AwayFouls,
+        List<ScoreEventItem>? ScoreEvents, List<FoulItem>? Fouls);
 
-    // GET api/matches  (lista paginada)
-    // GET api/matches/list  (alias por compatibilidad con el front)
+    // =======================
+    //  Listado (paginado)
+    // =======================
+    // GET api/matches   |   GET api/matches/list
     [HttpGet]
     [HttpGet("list")]
     public async Task<IActionResult> Listar(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
-        [FromQuery] string? status = null,       // "Scheduled", "Live", "Finished", etc (opcional)
-        [FromQuery] int? teamId = null,          // filtra si el equipo participa (opcional)
-        [FromQuery] DateTime? from = null,       // UTC opcional
-        [FromQuery] DateTime? to = null          // UTC opcional
-    )
+        [FromQuery] string? status = null,
+        [FromQuery] int? teamId = null,
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null)
     {
         if (page <= 0) page = 1;
         if (pageSize <= 0 || pageSize > 200) pageSize = 20;
@@ -75,15 +84,19 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
                 homeScore = m.HomeScore,
                 awayScore = m.AwayScore,
                 quarter = m.Period,
-                quarterDurationSeconds = m.QuarterDurationSeconds
+                quarterDurationSeconds = m.QuarterDurationSeconds,
+                // totales de faltas por equipo
+                homeFouls = db.Fouls.Count(f => f.MatchId == m.Id && f.TeamId == m.HomeTeamId),
+                awayFouls = db.Fouls.Count(f => f.MatchId == m.Id && f.TeamId == m.AwayTeamId)
             })
             .ToListAsync();
 
         return Ok(new { items, total, page, pageSize });
     }
 
-
-    // GET estado del partido
+    // =======================
+    //  Detalle (con timer y faltas)
+    // =======================
     [HttpGet("{id:int}")]
     public async Task<IActionResult> Get(int id)
     {
@@ -122,7 +135,9 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
         });
     }
 
-    // POST api/matches/programar
+    // =======================
+    //  Programación y consultas de agenda
+    // =======================
     [HttpPost("programar")]
     public async Task<IActionResult> Programar([FromBody] ProgramarPartidoDto dto)
     {
@@ -153,9 +168,6 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
         return Ok(new { matchId = match.Id });
     }
 
-
-
-    // PUT api/matches/{id}/reprogramar
     [HttpPut("{id:int}/reprogramar")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Reprogramar(int id, [FromBody] ReprogramarDto dto)
@@ -179,14 +191,12 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
         return Ok(new { id = m.Id, dateMatchUtc = m.DateMatch, status = m.Status });
     }
 
-    // GET api/matches/proximos
     [HttpGet("proximos")]
     public async Task<IActionResult> Proximos()
     {
         var ahora = DateTime.UtcNow;
         var list = await db.Matches
-            .Include(x => x.HomeTeam)
-            .Include(x => x.AwayTeam)
+            .Include(x => x.HomeTeam).Include(x => x.AwayTeam)
             .Where(x => x.Status == "Scheduled" && x.DateMatch >= ahora)
             .OrderBy(x => x.DateMatch)
             .Select(x => new
@@ -204,17 +214,15 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
         return Ok(list);
     }
 
-    // GET api/matches/rango?from=2025-09-21T00:00:00Z&to=2025-10-05T00:00:00Z
     [HttpGet("rango")]
     public async Task<IActionResult> Rango([FromQuery] DateTime from, [FromQuery] DateTime to)
     {
         var fromUtc = DateTime.SpecifyKind(from, DateTimeKind.Utc);
-        var toUtc = DateTime.SpecifyKind(to, DateTimeKind.Utc);
+        var toUtc   = DateTime.SpecifyKind(to,   DateTimeKind.Utc);
         if (toUtc <= fromUtc) return BadRequest("'to' debe ser mayor que 'from'.");
 
         var list = await db.Matches
-            .Include(x => x.HomeTeam)
-            .Include(x => x.AwayTeam)
+            .Include(x => x.HomeTeam).Include(x => x.AwayTeam)
             .Where(x => x.DateMatch >= fromUtc && x.DateMatch <= toUtc)
             .OrderBy(x => x.DateMatch)
             .Select(x => new
@@ -230,11 +238,9 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
         return Ok(list);
     }
 
-    // ===========================
-    // LO QUE YA TENÍAS (con protecciones)
-    // ===========================
-
-    // Crear partido con nombres libres
+    // =======================
+    //  Crear partido rápido
+    // =======================
     [HttpPost("new")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> NewGame([FromBody] NewGameDto dto)
@@ -272,7 +278,6 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
         });
     }
 
-    // Crear partido seleccionando equipos ya registrados
     [HttpPost("new-by-teams")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> NewByTeams([FromBody] NewGameByTeamsDto dto)
@@ -310,7 +315,9 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
         });
     }
 
-    // Puntos +1 +2 +3
+    // =======================
+    //  Marcador
+    // =======================
     [HttpPost("{id:int}/score")]
     public async Task<IActionResult> AddScore(int id, [FromBody] AddScoreDto dto)
     {
@@ -332,7 +339,6 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
         return Ok();
     }
 
-    // Puntos -/+
     [HttpPost("{id:int}/score/adjust")]
     public async Task<IActionResult> AdjustScore(int id, [FromBody] AdjustScoreDto dto)
     {
@@ -362,7 +368,9 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
         return Ok();
     }
 
-    // Faltas (sumar)
+    // =======================
+    //  Faltas
+    // =======================
     [HttpPost("{id:int}/fouls")]
     public async Task<IActionResult> AddFoul(int id, [FromBody] AddFoulDto dto)
     {
@@ -391,7 +399,6 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
         return Ok(new { homeFouls, awayFouls });
     }
 
-    // Faltas (ajustar)
     [HttpPost("{id:int}/fouls/adjust")]
     public async Task<IActionResult> AdjustFoul(int id, [FromBody] AdjustFoulDto dto)
     {
@@ -404,9 +411,7 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
         if (dto.Delta > 0)
         {
             for (int i = 0; i < dto.Delta; i++)
-            {
                 db.Fouls.Add(new FoulEntity { MatchId = id, TeamId = dto.TeamId, DateRegister = DateTime.Now });
-            }
         }
         else if (dto.Delta < 0)
         {
@@ -433,7 +438,10 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
         return Ok(new { homeFouls, awayFouls });
     }
 
-    // TIMER (runtime, no BD)
+    // =======================
+    //  Timer / Períodos
+    // =======================
+    [HttpPost("{id:int}/start")]          // alias práctico (mismo método que /timer/start)
     [HttpPost("{id:int}/timer/start")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> StartTimer(int id, [FromBody] StartTimerDto? dto)
@@ -507,7 +515,6 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
         return Ok(new { remainingSeconds = 0 });
     }
 
-    // Avanzar periodo (Quarter)
     [HttpPost("{id:int}/quarters/advance")]
     public async Task<IActionResult> AdvanceQuarter(int id)
     {
@@ -568,7 +575,87 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
         return Ok(new { quarter = m.Period });
     }
 
-    // Cancelar / Suspender
+    // =======================
+    //  Finalizar partido (Simular y guardar marcador + faltas)
+    // =======================
+    [HttpPost("{id:int}/finish")]
+    public async Task<IActionResult> Finish(int id, [FromBody] FinishMatchDto dto)
+    {
+        var m = await db.Matches
+            .Include(x => x.HomeTeam)
+            .Include(x => x.AwayTeam)
+            .FirstOrDefaultAsync(x => x.Id == id);
+
+        if (m is null) return NotFound();
+
+        // 1) marcador final
+        m.HomeScore = dto.HomeScore;
+        m.AwayScore = dto.AwayScore;
+
+        // 2) fijar faltas exactas por equipo
+        async Task SyncFouls(int teamId, int targetCount)
+        {
+            var current = await db.Fouls.CountAsync(f => f.MatchId == id && f.TeamId == teamId);
+            if (targetCount > current)
+            {
+                for (int i = 0; i < targetCount - current; i++)
+                    db.Fouls.Add(new FoulEntity { MatchId = id, TeamId = teamId, DateRegister = DateTime.UtcNow });
+            }
+            else if (targetCount < current)
+            {
+                var toRemove = await db.Fouls
+                    .Where(f => f.MatchId == id && f.TeamId == teamId)
+                    .OrderByDescending(f => f.Id)
+                    .Take(current - targetCount)
+                    .ToListAsync();
+                db.Fouls.RemoveRange(toRemove);
+            }
+        }
+
+        await SyncFouls(m.HomeTeamId, dto.HomeFouls);
+        await SyncFouls(m.AwayTeamId, dto.AwayFouls);
+
+        // 3) (opcional) persistir eventos si llegaron
+        if (dto.ScoreEvents is { Count: > 0 })
+            foreach (var se in dto.ScoreEvents)
+                db.ScoreEvents.Add(new ScoreEventEntity
+                {
+                    MatchId = id,
+                    TeamId = se.TeamId,
+                    PlayerId = se.PlayerId,
+                    Points = se.Points,
+                    DateRegister = se.DateRegister == default ? DateTime.UtcNow : se.DateRegister
+                });
+
+        if (dto.Fouls is { Count: > 0 })
+            foreach (var f in dto.Fouls)
+                db.Fouls.Add(new FoulEntity
+                {
+                    MatchId = id,
+                    TeamId = f.TeamId,
+                    PlayerId = f.PlayerId,
+                    DateRegister = f.DateRegister == default ? DateTime.UtcNow : f.DateRegister
+                });
+
+        // 4) cerrar y registrar victoria
+        m.Status = "Finished";
+        await RecordWinIfFinishedAsync(m);
+        await db.SaveChangesAsync();
+
+        await hub.Clients.Group($"match-{id}")
+            .SendAsync("gameEnded", new
+            {
+                home = m.HomeScore,
+                away = m.AwayScore,
+                winner = m.HomeScore == m.AwayScore ? "draw" : (m.HomeScore > m.AwayScore ? "home" : "away")
+            });
+
+        return Ok(new { id = m.Id, status = m.Status, homeScore = m.HomeScore, awayScore = m.AwayScore });
+    }
+
+    // =======================
+    //  Cancelar / Suspender
+    // =======================
     [HttpPost("{id:int}/cancel")]
     public async Task<IActionResult> Cancel(int id)
     {
@@ -599,7 +686,9 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
         return Ok(new { status = m.Status });
     }
 
-    // PRIVADO: registrar TeamWin si terminó y no fue empate
+    // =======================
+    //  Helper: registrar la victoria
+    // =======================
     private async Task RecordWinIfFinishedAsync(MatchEntity m)
     {
         if (m.Status != "Finished") return;

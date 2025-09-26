@@ -2,21 +2,21 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { map, Observable } from 'rxjs';
 
-/** DTO que envía el frontend para programar un partido (lo que espera tu API) */
+/* =========================
+   DTOs / Tipos de intercambio
+   ========================= */
 export interface ScheduleMatchDto {
   homeTeamId: number;
-  awayTeamId: number;
-  dateMatchUtc: string;           // ISO UTC (ej: "2025-10-01T02:00:00Z")
-  quarterDurationSeconds: number; // 600 por defecto si no quieres pensar mucho
-  // Si luego agregas roster en el backend, ya tienes estos campos listos:
+  awayTeamId: number;                 // 👈 FALTABA
+  dateMatchUtc: string;               // ISO UTC
+  quarterDurationSeconds: number;     // p.ej. 600
   homeRosterPlayerIds?: number[];
   awayRosterPlayerIds?: number[];
 }
 
-/** Item que usa la UI en listados */
 export interface MatchListItem {
   id: number;
-  dateMatch: string;   // ISO (mapeado desde dateMatchUtc)
+  dateMatch: string | null; // ISO
   status: string;
   homeTeam: string;
   awayTeam: string;
@@ -26,7 +26,6 @@ export interface MatchListItem {
   awayFouls: number;
 }
 
-/** Respuesta paginada del backend */
 export interface PaginatedMatches {
   items: MatchListItem[];
   total: number;
@@ -34,31 +33,74 @@ export interface PaginatedMatches {
   pageSize: number;
 }
 
+export interface StartTimerDto {
+  quarterDurationSeconds?: number;
+}
+
+export interface ScoreEventItem {
+  teamId: number;
+  playerId?: number;
+  points: number;
+  dateRegister?: string; // ISO
+}
+
+export interface FoulItem {
+  teamId: number;
+  playerId?: number;
+  dateRegister?: string; // ISO
+}
+
+export interface FinishMatchDto {
+  homeScore: number;
+  awayScore: number;
+  homeFouls: number;
+  awayFouls: number;
+  scoreEvents?: ScoreEventItem[];
+  fouls?: FoulItem[];
+}
+
+export interface AddScoreDto {
+  teamId: number;
+  points: 1 | 2 | 3;
+}
+
+export interface AdjustScoreDto {
+  teamId: number;
+  delta: number; // puede ser negativo
+}
+
+export interface AddFoulDto {
+  teamId: number;
+  playerId?: number;
+  type?: string;
+}
+
+export interface AdjustFoulDto {
+  teamId: number;
+  delta: number; // +n / -n
+}
+
 @Injectable({ providedIn: 'root' })
 export class MatchesService {
-  // private base = 'http://localhost:5003/api/matches';
+  // Si no usas proxy, cambia a 'http://localhost:5003/api/matches'
   private base = '/api/matches';
 
   constructor(private http: HttpClient) {}
 
-  /** POST /api/matches/programar  ->  { matchId: number } */
+  /* -----------------------
+     Programación y listados
+     ----------------------- */
   programar(dto: ScheduleMatchDto): Observable<{ matchId: number }> {
-    // El backend ignora campos extra, así que puedes mandar los roster aunque aún no se usen.
     return this.http.post<{ matchId: number }>(`${this.base}/programar`, dto);
   }
 
-  /**
-   * GET /api/matches/list (paginado)
-   * El backend devuelve { items, total, page, pageSize } con campos:
-   *   id, dateMatchUtc, status, homeTeam, awayTeam, homeScore, awayScore, ...
-   */
   list(params?: {
     page?: number;
     pageSize?: number;
-    status?: string;         // "Scheduled" | "Live" | "Finished"...
+    status?: string;
     teamId?: number;
-    fromUtc?: string;        // "2025-09-01T00:00:00Z"
-    toUtc?: string;          // "2025-10-01T00:00:00Z"
+    fromUtc?: string;
+    toUtc?: string;
   }): Observable<PaginatedMatches> {
     const p = new URLSearchParams();
     p.set('page', String(params?.page ?? 1));
@@ -78,28 +120,103 @@ export class MatchesService {
     );
   }
 
-  /** GET /api/matches/proximos -> lista simple (sin paginar) */
   proximos(): Observable<MatchListItem[]> {
     return this.http.get<any[]>(`${this.base}/proximos`).pipe(
       map(arr => (arr ?? []).map(m => this.mapToListItem(m)))
     );
   }
 
-  /** GET /api/matches/{id} -> detalle (incluye homeFouls/awayFouls y marcador) */
+  rango(fromUtc: string, toUtc: string): Observable<MatchListItem[]> {
+    const p = new URLSearchParams({ from: fromUtc, to: toUtc }).toString();
+    return this.http.get<any[]>(`${this.base}/rango?${p}`).pipe(
+      map(arr => (arr ?? []).map(m => this.mapToListItem(m)))
+    );
+  }
+
   getById(id: number): Observable<MatchListItem> {
     return this.http.get<any>(`${this.base}/${id}`).pipe(
       map(m => this.mapToListItem(m))
     );
   }
 
-  /** Mapper seguro backend -> UI */
+  reprogramar(id: number, newDateMatchUtc: string) {
+    return this.http.put(`${this.base}/${id}/reprogramar`, { newDateMatchUtc });
+  }
+
+  cancel(id: number) {
+    return this.http.post(`${this.base}/${id}/cancel`, {});
+  }
+
+  suspend(id: number) {
+    return this.http.post(`${this.base}/${id}/suspend`, {});
+  }
+
+  /* -------------
+     Control / Live
+     ------------- */
+
+  // Alias conveniente que usa el endpoint existente /timer/start
+  start(id: number, dto?: StartTimerDto) {
+    return this.http.post(`${this.base}/${id}/timer/start`, dto ?? {});
+  }
+
+  startTimer(id: number, dto?: StartTimerDto) {
+    return this.http.post(`${this.base}/${id}/timer/start`, dto ?? {});
+  }
+  pauseTimer(id: number) {
+    return this.http.post(`${this.base}/${id}/timer/pause`, {});
+  }
+  resumeTimer(id: number) {
+    return this.http.post(`${this.base}/${id}/timer/resume`, {});
+  }
+  resetTimer(id: number) {
+    return this.http.post(`${this.base}/${id}/timer/reset`, {});
+  }
+
+  advanceQuarter(id: number) {
+    return this.http.post(`${this.base}/${id}/quarters/advance`, {});
+  }
+  autoAdvanceQuarter(id: number) {
+    return this.http.post(`${this.base}/${id}/quarters/auto-advance`, {});
+  }
+
+  /* -------
+     Scores
+     ------- */
+  addScore(id: number, dto: AddScoreDto) {
+    return this.http.post(`${this.base}/${id}/score`, dto);
+  }
+  adjustScore(id: number, dto: AdjustScoreDto) {
+    return this.http.post(`${this.base}/${id}/score/adjust`, dto);
+  }
+
+  /* ------
+     Fouls
+     ------ */
+  addFoul(id: number, dto: AddFoulDto) {
+    return this.http.post(`${this.base}/${id}/fouls`, dto);
+  }
+  adjustFoul(id: number, dto: AdjustFoulDto) {
+    return this.http.post(`${this.base}/${id}/fouls/adjust`, dto);
+  }
+
+  /* ---------------
+     Finalizar juego
+     --------------- */
+  finish(id: number, dto: FinishMatchDto) {
+    return this.http.post(`${this.base}/${id}/finish`, dto);
+  }
+
+  /* ----------------------
+     Mapper backend -> UI
+     ---------------------- */
   private mapToListItem(m: any): MatchListItem {
     return {
       id: m.id,
       dateMatch: m.dateMatchUtc ?? m.dateMatch ?? null,
       status: m.status ?? '',
-      homeTeam: m.homeTeam ?? (m.homeTeamName ?? ''),
-      awayTeam: m.awayTeam ?? (m.awayTeamName ?? ''),
+      homeTeam: m.homeTeam ?? m.homeTeamName ?? '',
+      awayTeam: m.awayTeam ?? m.awayTeamName ?? '',
       homeScore: m.homeScore ?? 0,
       awayScore: m.awayScore ?? 0,
       homeFouls: m.homeFouls ?? 0,
