@@ -33,10 +33,10 @@
     <mat-form-field appearance="outline">
       <mat-label>Estado</mat-label>
       <mat-select formControlName="status">
-        <mat-option value="Programado">Programado</mat-option>
-        <mat-option value="Live">Live</mat-option>
-        <mat-option value="Finished">Finished</mat-option>
-        <mat-option value="Canceled">Canceled</mat-option>
+        <mat-option [value]="'Scheduled'">Programado</mat-option>
+        <mat-option [value]="'Live'">En juego</mat-option>
+        <mat-option [value]="'Finished'">Finalizado</mat-option>
+        <mat-option [value]="'Canceled'">Cancelado</mat-option>
       </mat-select>
     </mat-form-field>
   </div>
@@ -118,6 +118,7 @@
   <ng-container matColumnDef="actions">
     <th mat-header-cell *matHeaderCellDef> Acciones </th>
     <td mat-cell *matCellDef="let row">
+<<<<<<< HEAD
       <button mat-stroked-button color="primary"
               [routerLink]="['/control', row.id]"
               *ngIf="row.status === 'Scheduled' || row.status === 'Live'">Jugar</button>
@@ -125,6 +126,23 @@
       <button mat-stroked-button color="accent"
               (click)="finishSim(row)"
               *ngIf="row.status !== 'Finished'">Simular y finalizar</button>
+=======
+      <button
+        mat-stroked-button
+        color="primary"
+        [routerLink]="['/control', row.id]"
+        *ngIf="row.status === 'Scheduled' || row.status === 'Live' || row.status === 'Programado' || row.status === 'En juego'">
+        Jugar
+      </button>
+
+      <button
+        mat-stroked-button
+        color="accent"
+        (click)="finishSim(row)"
+        *ngIf="row.status !== 'Finished' && row.status !== 'Finalizado'">
+        Simular y finalizar
+      </button>
+>>>>>>> origin/main
     </td>
   </ng-container>
 
@@ -136,6 +154,10 @@
   No hay partidos para mostrar.
 </div>
 
+<<<<<<< HEAD
+=======
+<!-- Paginador -->
+>>>>>>> origin/main
 <mat-paginator
   [length]="paginatorLength()"
   [pageIndex]="pageIndex()"

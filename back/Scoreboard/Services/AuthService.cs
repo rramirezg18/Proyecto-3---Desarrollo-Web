@@ -19,8 +19,7 @@ namespace Scoreboard.Services
         public async Task<LoginResponseDto?> AuthenticateAsync(LoginRequestDto request)
         {
             var user = await _userRepository.GetUserWithRoleAsync(request.Username, request.Password);
-            if (user == null)
-                return null;
+            if (user == null) return null;
 
             var token = GenerateJwtToken(user);
 
@@ -35,12 +34,10 @@ namespace Scoreboard.Services
         public async Task<string?> RegisterAsync(RegisterRequestDto request)
         {
             var existingUser = await _userRepository.GetByUsernameAsync(request.Username);
-            if (existingUser != null)
-                return null;
+            if (existingUser != null) return null;
 
-            var role = await _roleRepository.GetRoleByIdAsync(request.RoleId); // 👈 ahora buscamos por Id
-            if (role == null)
-                return null;
+            var role = await _roleRepository.GetRoleByIdAsync(request.RoleId);
+            if (role == null) return null;
 
             var hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
@@ -55,17 +52,30 @@ namespace Scoreboard.Services
             return "Usuario registrado correctamente.";
         }
 
-
         private string GenerateJwtToken(User user)
         {
             var jwtSettings = _config.GetSection("Jwt");
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"] ?? "SuperSecretKey123"));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            var claims = new[]
+            // ⚠️ Normalizamos el nombre del rol y emitimos AMBAS variantes
+            var roleName = string.IsNullOrWhiteSpace(user.Role?.Name) ? "User" : user.Role!.Name;
+            if (roleName.Equals("administrador", StringComparison.OrdinalIgnoreCase)) roleName = "Admin";
+            if (roleName.Equals("admin", StringComparison.OrdinalIgnoreCase))          roleName = "Admin";
+
+            var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.Role, user.Role?.Name ?? ""),
+
+                // 👉 estándar para ASP.NET:
+                new Claim(ClaimTypes.Role, roleName),
+
+                // 👉 plano para clientes y librerías:
+                new Claim("role", roleName),
+
+                // opcional: por si manejas múltiples roles
+                new Claim("roles", System.Text.Json.JsonSerializer.Serialize(new []{ roleName })),
+
                 new Claim("Id", user.Id.ToString())
             };
 
@@ -73,7 +83,7 @@ namespace Scoreboard.Services
                 issuer: jwtSettings["Issuer"],
                 audience: jwtSettings["Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddMinutes(Convert.ToDouble(jwtSettings["ExpiresInMinutes"] ?? "60")),
+                expires: DateTime.UtcNow.AddMinutes(Convert.ToDouble(jwtSettings["ExpiresInMinutes"] ?? "60")),
                 signingCredentials: creds
             );
 

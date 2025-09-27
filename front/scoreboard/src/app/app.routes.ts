@@ -17,7 +17,7 @@ export const routes: Routes = [
   { path: 'score', pathMatch: 'full', redirectTo: 'score/1' },
   { path: 'control', pathMatch: 'full', redirectTo: 'control/1' },
 
-  // Dashboard admin
+  // Dashboard admin (solo Admin)
   {
     path: 'admin',
     canActivate: [authGuard, adminGuard],
@@ -25,7 +25,7 @@ export const routes: Routes = [
       import('./pages/admin/admin-dashboard').then(m => m.AdminDashboardComponent),
   },
 
-  // Páginas protegidas
+  // Score y Control (sólo autenticado)
   {
     path: 'score/:id',
     canActivate: [authGuard],
@@ -39,7 +39,7 @@ export const routes: Routes = [
       import('./features/control/control-panel/control-panel').then(m => m.ControlPanelComponent),
   },
 
-  // Players (lista / crear / editar)
+  // Players (solo Admin)
   {
     path: 'players',
     canActivate: [authGuard, adminGuard],
@@ -59,7 +59,7 @@ export const routes: Routes = [
       import('./components/players/player-form/player-form').then(m => m.PlayerFormComponent),
   },
 
-  // Teams (misma estructura que players)
+  // Teams (solo Admin)
   {
     path: 'teams',
     canActivate: [authGuard, adminGuard],
@@ -79,7 +79,7 @@ export const routes: Routes = [
       import('./components/teams/team-form/team-form').then(m => m.TeamFormComponent),
   },
 
-  // Torneos
+  // Torneos (solo Admin)
   {
     path: 'tournaments',
     canActivate: [authGuard, adminGuard],
@@ -89,4 +89,3 @@ export const routes: Routes = [
 
   { path: '**', redirectTo: 'login' },
 ];
-

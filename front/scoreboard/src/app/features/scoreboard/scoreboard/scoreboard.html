@@ -1,57 +1,46 @@
-<app-topbar
-  [showAdmin]="true"
-  [showControl]="true"
-  [showScore]="false"
-  [showLogout]="true"
-  [controlId]="matchId()"
-  [scoreId]="matchId()">
-</app-topbar>
+<!-- src/app/features/scoreboard/scoreboard/scoreboard.html -->
+<div class="scoreboard-page">
+  <app-topbar
+    [showAdmin]="true"
+    [showControl]="true"
+    [showScore]="false"
+    [showLogout]="true"
+    [controlId]="matchId()"
+    [scoreId]="matchId()">
+  </app-topbar>
 
-<!-- Menú admin flotante (solo si es admin, no afecta el layout del tablero) -->
-<app-admin-menu
-  *ngIf="auth.isAdmin()"
-  class="admin-menu-fixed">
-</app-admin-menu>
+  <app-admin-menu *ngIf="auth.isAdmin()" class="admin-menu-fixed"></app-admin-menu>
 
-<div class="board">
-  <!-- TOP: FOULS + TIMER + FOULS -->
-  <div class="top">
-    <!-- Lado HOME -->
-    <app-fouls-panel side="home" class="fouls left"></app-fouls-panel>
+  <div class="board">
+    <div class="top">
+      <app-fouls-panel side="home" class="fouls left"></app-fouls-panel>
 
-    <div class="timer-wrap">
-      <div class="timer-bezel">
-        <app-timer></app-timer>
+      <div class="timer-wrap">
+        <div class="timer-bezel">
+          <app-timer></app-timer>
+        </div>
       </div>
+
+      <app-fouls-panel side="away" class="fouls right"></app-fouls-panel>
     </div>
 
-    <!-- Lado AWAY -->
-    <app-fouls-panel side="away" class="fouls right"></app-fouls-panel>
-  </div>
-
-  <!-- MIDDLE: SCORE - POS/PERIOD - SCORE -->
-  <div class="middle">
-    <div class="score-box left">
-      <app-team-panel
-        [label]="homeName"
-        [score]="realtime.score().home">
-      </app-team-panel>
-    </div>
-
-    <div class="center">
-      <div class="pos">
-        <span class="arrow left active">◄</span>
-        <span class="pos-text">POS</span>
-        <span class="arrow right">►</span>
+    <div class="middle">
+      <div class="score-box left">
+        <app-team-panel [label]="homeName" [score]="realtime.score().home"></app-team-panel>
       </div>
-      <app-quarter-indicator></app-quarter-indicator>
-    </div>
 
-    <div class="score-box right">
-      <app-team-panel
-        [label]="awayName"
-        [score]="realtime.score().away">
-      </app-team-panel>
+      <div class="center">
+        <div class="pos">
+          <span class="arrow left active">◄</span>
+          <span class="pos-text">POS</span>
+          <span class="arrow right">►</span>
+        </div>
+        <app-quarter-indicator></app-quarter-indicator>
+      </div>
+
+      <div class="score-box right">
+        <app-team-panel [label]="awayName" [score]="realtime.score().away"></app-team-panel>
+      </div>
     </div>
   </div>
 </div>
