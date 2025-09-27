@@ -18,24 +18,17 @@ namespace Scoreboard.Controllers;
 [Route("api/matches")]
 public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatchRunTime rt) : ControllerBase
 {
-    // =======================
-    //  DTOs locales del controller
-    // =======================
     public record ProgramarPartidoDto(int HomeTeamId, int AwayTeamId, DateTime DateMatchUtc, int? QuarterDurationSeconds);
     public record ReprogramarDto(DateTime NewDateMatchUtc);
     public record StartTimerDto(int? QuarterDurationSeconds);
 
-    // Para /finish (opcionalmente recibir eventos)
     public record ScoreEventItem(int TeamId, int? PlayerId, int Points, DateTime DateRegister);
     public record FoulItem(int TeamId, int? PlayerId, DateTime DateRegister);
     public record FinishMatchDto(
         int HomeScore, int AwayScore, int HomeFouls, int AwayFouls,
         List<ScoreEventItem>? ScoreEvents, List<FoulItem>? Fouls);
 
-    // =======================
-    //  Listado (paginado)
-    // =======================
-    // GET api/matches   |   GET api/matches/list
+
     [HttpGet]
     [HttpGet("list")]
     public async Task<IActionResult> Listar(
@@ -94,9 +87,7 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
         return Ok(new { items, total, page, pageSize });
     }
 
-    // =======================
-    //  Detalle (con timer y faltas)
-    // =======================
+
     [HttpGet("{id:int}")]
     public async Task<IActionResult> Get(int id)
     {
@@ -135,10 +126,9 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
         });
     }
 
-    // =======================
-    //  Programación y consultas de agenda
-    // =======================
+
     [HttpPost("programar")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Programar([FromBody] ProgramarPartidoDto dto)
     {
         if (dto.HomeTeamId <= 0 || dto.AwayTeamId <= 0 || dto.HomeTeamId == dto.AwayTeamId)
@@ -155,7 +145,7 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
             HomeTeamId = home.Id,
             AwayTeamId = away.Id,
             Status = "Scheduled",
-            QuarterDurationSeconds = dto.QuarterDurationSeconds is > 0 ? dto.QuarterDurationSeconds.Value : 600,
+            QuarterDurationSeconds = dto.QuarterDurationSeconds is > 0 ? dto.QuarterDurationSeconds.Value : 10,
             HomeScore = 0,
             AwayScore = 0,
             Period = 1,
@@ -258,7 +248,7 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
             HomeTeamId = home.Id,
             AwayTeamId = away.Id,
             Status = "Scheduled",
-            QuarterDurationSeconds = dto.QuarterDurationSeconds is > 0 ? dto.QuarterDurationSeconds!.Value : 600,
+            QuarterDurationSeconds = dto.QuarterDurationSeconds is > 0 ? dto.QuarterDurationSeconds!.Value : 10,
             HomeScore = 0,
             AwayScore = 0,
             Period = 1,
@@ -294,7 +284,7 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
             HomeTeamId = home.Id,
             AwayTeamId = away.Id,
             Status = "Scheduled",
-            QuarterDurationSeconds = dto.QuarterDurationSeconds is > 0 ? dto.QuarterDurationSeconds!.Value : 600,
+            QuarterDurationSeconds = dto.QuarterDurationSeconds is > 0 ? dto.QuarterDurationSeconds!.Value : 10,
             HomeScore = 0,
             AwayScore = 0,
             Period = 1,
