@@ -443,7 +443,7 @@ public class MatchesController(AppDbContext db, IHubContext<ScoreHub> hub, IMatc
     // =======================
     [HttpPost("{id:int}/start")]          // alias práctico (mismo método que /timer/start)
     [HttpPost("{id:int}/timer/start")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Control")]
     public async Task<IActionResult> StartTimer(int id, [FromBody] StartTimerDto? dto)
     {
         var m = await db.Matches.FindAsync(id);
