@@ -1,86 +1,98 @@
-<div class="cp-toolbar">
-  <div class="left">
-    <button mat-stroked-button (click)="goScoreboard()">⬅️ Ir al marcador</button>
+<!-- HERO superior con gradiente, consistente con Admin Pro -->
+<div class="cp-hero">
+  <div class="wrap">
+    <div class="crumbs">
+      <button class="pill ghost" (click)="goBack()">← Volver</button>
+      <span class="sep">/</span>
+      <span class="muted">Panel de Control</span>
+    </div>
 
-    <!-- Solo ADMIN -->
-    <button mat-raised-button color="primary" *ngIf="isAdmin" (click)="newGameFromRegistered()">➕ Nuevo partido</button>
-    <button mat-raised-button color="primary" *ngIf="isAdmin" (click)="newGameFromRegistered()">🧩 Nuevo (equipos)</button>
-    <button mat-raised-button color="accent"  *ngIf="isAdmin" (click)="registerTeam()">📝 Registrar equipo</button>
+    <h1>Control del Partido</h1>
+    <p class="sub">Gestiona el reloj, puntos, faltas y período en vivo.</p>
 
-    <!-- Para ambos roles -->
-    <button mat-stroked-button color="accent" (click)="showStandings()">🏆 Standings</button>
-
-    <!-- Elegir partido -->
-    <button mat-stroked-button color="primary" (click)="openPickMatch()">🎮 Elegir partido</button>
-  </div>
-
-  <div class="right">
-    <button mat-raised-button color="warn" (click)="logout()">🔒 Logout</button>
+    <div class="hero-actions">
+      <button class="pill" (click)="goScoreboard()">🎯 Ver Scoreboard</button>
+      <button class="pill" (click)="openPickMatch()">🎮 Elegir partido</button>
+      <button class="pill warn" (click)="logout()">🔒 Logout</button>
+    </div>
   </div>
 </div>
 
-<div class="cp">
-  <!-- Toolbar superior gris -->
-  <div class="toolbar">
-    <button class="btn" (click)="registerTeam()">Register Team</button>
-    <button class="btn" (click)="newGameFromRegistered()">New Game (Teams)</button>
-    <button class="btn" (click)="showStandings()">Standings</button>
-    <button class="btn" (click)="rt.beep()">Buzzer</button>
+<!-- CONTENIDO -->
+<div class="cp-container">
+  <!-- Tarjeta principal: estado + reloj + acciones -->
+  <section class="card head-card">
+    <div class="head-left">
+      <div class="teams-line">
+        <span class="team home">{{ homeName }}</span>
+        <span class="vs">vs</span>
+        <span class="team away">{{ awayName }}</span>
+      </div>
 
-    <button class="btn" (click)="openPickMatch()">Elegir partido</button>
-  </div>
-
-  <!-- Centro: controles de tiempo -->
-  <div class="time-center">
-    <div class="status" [class.paused]="!rt.timerRunning()" [class.dark]="!rt.timerRunning()">
-      {{ rt.timerRunning() ? 'Running' : 'Paused' }}
+      <div class="meta-line">
+        <span class="badge" [class.ok]="rt.timerRunning()" [class.err]="!rt.timerRunning()">
+          {{ rt.timerRunning() ? 'Running' : 'Paused' }}
+        </span>
+        <span class="dot"></span>
+        <span class="muted">Período</span>
+        <span class="period">{{ rt.quarter() }}</span>
+        <span class="dot"></span>
+        <span class="muted">Estado</span>
+        <span class="status">{{ status() }}</span>
+      </div>
     </div>
 
-    <div class="clock">{{ clock() }}</div>
-    <div class="status dark">Period Time</div>
-
-    <div class="time-actions">
-      <button class="btn go" (click)="start()" [disabled]="rt.timerRunning() || rt.timeoutRunning() || !!rt.gameOver()">
-        Start
-      </button>
-
-      <button class="btn" (click)="resume()" [disabled]="rt.timerRunning() || rt.timeLeft()<=0 || rt.timeoutRunning()">
-        Resume
-      </button>
-
-      <button class="btn stop" (click)="stop()">Stop</button>
-      <button class="btn" (click)="timeout(30)" [disabled]="rt.timeoutRunning() || !rt.timerRunning()">Timeout (0:30)</button>
-      <button class="btn" (click)="timeout(60)" [disabled]="rt.timeoutRunning() || !rt.timerRunning()">Timeout (1:00)</button>
-      <button class="btn" (click)="reset()">Reset</button>
+    <div class="head-right">
+      <div class="clock">{{ clock() }}</div>
+      <div class="clock-sub">{{ rt.timeoutRunning() ? 'Timeout' : 'Period Time' }}</div>
     </div>
-  </div>
+  </section>
 
-  <!-- Posesión -->
-  <div class="section">
-    <div class="title">POSSESSION</div>
-    <div class="pos">
-      <button class="btn pos-btn" [class.active]="possession() === 'home'" (click)="posLeft()">◄</button>
-      <button class="btn pos-none" (click)="posNone()">
-        {{ possession() === 'none' ? 'None' : (possession() === 'home' ? homeName : awayName) }}
-      </button>
-      <button class="btn pos-btn" [class.active]="possession() === 'away'" (click)="posRight()">►</button>
-    </div>
-  </div>
+  <!-- Acciones del reloj -->
+  <section class="card actions">
+    <button class="btn go"
+            (click)="start()"
+            [disabled]="rt.timerRunning() || rt.timeoutRunning() || !!rt.gameOver()">Start</button>
 
-  <!-- Periodo -->
-  <div class="section">
-    <div class="title">PERIOD</div>
-    <div class="period">
-      <button class="btn minus" (click)="periodMinus()">-1</button>
-      <div class="period-box"><span class="num">{{ rt.quarter() }}</span></div>
-      <button class="btn plus" (click)="periodPlus()">+1</button>
+    <button class="btn"
+            (click)="resume()"
+            [disabled]="rt.timerRunning() || rt.timeLeft()<=0 || rt.timeoutRunning()">Resume</button>
+
+    <button class="btn stop" (click)="stop()">Stop</button>
+
+    <button class="btn" (click)="timeout(30)" [disabled]="rt.timeoutRunning() || !rt.timerRunning()">Timeout (0:30)</button>
+    <button class="btn" (click)="timeout(60)" [disabled]="rt.timeoutRunning() || !rt.timerRunning()">Timeout (1:00)</button>
+
+    <button class="btn ghost" (click)="reset()">Reset</button>
+  </section>
+
+  <!-- Posesión + Período -->
+  <section class="grid-2">
+    <div class="card">
+      <div class="card-title">Posesión</div>
+      <div class="pos">
+        <button class="btn pos-btn" [class.active]="possession() === 'home'" (click)="posLeft()">◄</button>
+        <button class="btn pos-none" (click)="posNone()">
+          {{ possession() === 'none' ? 'None' : (possession() === 'home' ? homeName : awayName) }}
+        </button>
+        <button class="btn pos-btn" [class.active]="possession() === 'away'" (click)="posRight()">►</button>
+      </div>
     </div>
-  </div>
+
+    <div class="card">
+      <div class="card-title">Período</div>
+      <div class="period">
+        <button class="btn minus" (click)="periodMinus()" disabled>-1</button>
+        <div class="period-box"><span class="num">{{ rt.quarter() }}</span></div>
+        <button class="btn plus" (click)="periodPlus()">+1</button>
+      </div>
+    </div>
+  </section>
 
   <!-- Equipos -->
-  <div class="teams">
+  <section class="grid-2">
     <!-- HOME -->
-    <div class="team">
+    <div class="card team">
       <div class="name">{{ homeName }}</div>
       <div class="sub">SCORE</div>
 
@@ -94,7 +106,6 @@
         <button class="btn pos" [disabled]="!homeTeamId || !canScore()" (click)="add(homeTeamId,2)">+2</button>
       </div>
 
-      <!-- FOULS HOME -->
       <div class="sub fouls-title">FOULS</div>
       <div class="fouls-row">
         <button class="btn neg" [disabled]="!homeTeamId" (click)="foul(homeTeamId,-1)">-1</button>
@@ -104,7 +115,7 @@
     </div>
 
     <!-- AWAY -->
-    <div class="team">
+    <div class="card team">
       <div class="name">{{ awayName }}</div>
       <div class="sub">SCORE</div>
 
@@ -118,7 +129,6 @@
         <button class="btn pos" [disabled]="!awayTeamId || !canScore()" (click)="add(awayTeamId,2)">+2</button>
       </div>
 
-      <!-- FOULS AWAY -->
       <div class="sub fouls-title">FOULS</div>
       <div class="fouls-row">
         <button class="btn neg" [disabled]="!awayTeamId" (click)="foul(awayTeamId,-1)">-1</button>
@@ -126,7 +136,22 @@
         <button class="btn pos" [disabled]="!awayTeamId" (click)="foul(awayTeamId,1)">+1</button>
       </div>
     </div>
-  </div>
+  </section>
 
-  <a class="link" [routerLink]="['/score', matchId()]">Mostrar Scoreboard</a>
+  <!-- Herramientas -->
+  <section class="card tools">
+    <div class="group">
+      <div class="title">Navegación</div>
+      <button class="pill" (click)="goBack()">← Volver</button>
+      <button class="pill" (click)="goScoreboard()">🎯 Ver Scoreboard</button>
+      <button class="pill" (click)="openPickMatch()">🎮 Elegir partido</button>
+      <button class="pill" (click)="showStandings()">🏆 Ver standings</button>
+    </div>
+
+    <div class="group" *ngIf="isAdmin">
+      <div class="title">Administración</div>
+      
+      <button class="pill" (click)="registerTeam()">📝 Registrar equipo</button>
+    </div>
+  </section>
 </div>

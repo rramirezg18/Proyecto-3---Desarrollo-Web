@@ -1,10 +1,8 @@
-// src/app/features/control/control-panel/control-panel.ts
 import { Component, computed, effect, inject, OnDestroy, PLATFORM_ID, signal } from '@angular/core';
 import { isPlatformBrowser, NgIf } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs/operators';
-import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import Swal from 'sweetalert2';
 
@@ -17,14 +15,14 @@ import { AuthenticationService } from '../../../core/services/authentication.ser
 // Diálogos
 import { NewGameDialogComponent } from '../../matches/new-game-dialog';
 import { RegisterTeamDialogComponent } from '../../teams/register-team-dialog';
-import { PickMatchDialogComponent } from './match.dialog'; // 👈 diálogo "Elegir partido"
+import { PickMatchDialogComponent } from './match.dialog'; // Elegir partido
 
 type Possession = 'none' | 'home' | 'away';
 
 @Component({
   selector: 'app-control-panel',
   standalone: true,
-  imports: [RouterLink, MatButtonModule, MatDialogModule, NgIf],
+  imports: [RouterLink, MatDialogModule, NgIf],
   templateUrl: './control-panel.html',
   styleUrls: ['./control-panel.css']
 })
@@ -124,7 +122,7 @@ export class ControlPanelComponent implements OnDestroy {
           this.awayName = m.awayTeam ?? 'AWAY';
           this.homeScore.set(m.homeScore ?? 0);
           this.awayScore.set(m.awayScore ?? 0);
-          this.status.set(m.status ?? 'Scheduled'); // 👈 hidrata estado
+          this.status.set(m.status ?? 'Scheduled');
 
           if (typeof m.quarter === 'number') this.rt.quarter.set(m.quarter);
           if (m.timer) this.rt.hydrateTimerFromSnapshot({ ...m.timer, quarter: m.quarter });
@@ -162,6 +160,11 @@ export class ControlPanelComponent implements OnDestroy {
     } catch { return false; }
   }
 
+  // Navegación
+  goBack() {
+    if (this.isAdmin) this.router.navigate(['/admin']);
+    else this.router.navigate(['/score', this.matchId()]);
+  }
   goScoreboard() { this.router.navigate(['/score', this.matchId()]); }
 
   logout() {
@@ -170,7 +173,7 @@ export class ControlPanelComponent implements OnDestroy {
     this.router.navigate(['/login']);
   }
 
-  // Abrir diálogo para elegir partido
+  // Elegir partido
   openPickMatch() {
     const ref = this.dialog.open(PickMatchDialogComponent, {
       width: '720px',
@@ -182,10 +185,10 @@ export class ControlPanelComponent implements OnDestroy {
     });
   }
 
-  // (compat) Si algún botón del HTML llama a newGame(), redirigimos al flujo por equipos registrados
+  // Compat: alias
   newGame() { this.newGameFromRegistered(); }
 
-  // === Guard genérico para bloquear acciones si el partido está en solo-lectura
+  // Guard genérico
   private denyIfLocked(): boolean {
     if (!this.readOnly()) return false;
     Swal.fire({
@@ -199,7 +202,7 @@ export class ControlPanelComponent implements OnDestroy {
     return true;
   }
 
-  // === Backend: auto-advance
+  // Auto-advance
   private tryAutoAdvance(retry = 0) {
     const id = this.matchId();
     const prevQuarter = this.rt.quarter();
@@ -217,7 +220,7 @@ export class ControlPanelComponent implements OnDestroy {
     });
   }
 
-  // === Puntos
+  // Puntos
   add(teamId: number | undefined, points: 1 | 2 | 3) {
     if (!teamId || !this.canScore()) return;
     this.api.createScore(this.matchId(), { teamId, points }).subscribe();
@@ -234,7 +237,7 @@ export class ControlPanelComponent implements OnDestroy {
     this.api.adjustFoul(this.matchId(), { teamId, delta }).subscribe();
   }
 
-  // === Timer
+  // Timer
   start() {
     if (this.denyIfLocked()) return;
     this.api.startTimer(this.matchId()).subscribe({
@@ -250,7 +253,6 @@ export class ControlPanelComponent implements OnDestroy {
           showConfirmButton: false
         });
       },
-      // 🔧 manejo claro para 403 (no Admin) + genérico
       error: async (e) => {
         const status = e?.status;
         if (status === 403) {
@@ -307,7 +309,7 @@ export class ControlPanelComponent implements OnDestroy {
     this.rt.startTimeout(sec, () => this.resume());
   }
 
-  // Periodo (real)
+  // Periodo
   periodMinus() { /* no retroceder */ }
   periodPlus()  {
     if (this.denyIfLocked()) return;
