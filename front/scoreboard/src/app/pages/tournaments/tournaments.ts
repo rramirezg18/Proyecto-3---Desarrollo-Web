@@ -74,7 +74,7 @@ export class TournamentsComponent implements OnInit, OnDestroy {
     homeTeamId: this.fb.control<number | null>(null, { validators: [Validators.required], nonNullable: false }),
     awayTeamId: this.fb.control<number | null>(null, { validators: [Validators.required], nonNullable: false }),
     dateMatch: this.fb.control<Date | null>(new Date(), { validators: [Validators.required], nonNullable: false }),
-    quarterDurationSeconds: this.fb.control<number | null>(600, { validators: [Validators.required, Validators.min(60)], nonNullable: false }),
+    quarterDurationSeconds: this.fb.control<number | null>(600, { validators: [Validators.required, Validators.min(10)], nonNullable: false }),
     status: this.fb.control<string | null>('Scheduled', { validators: [Validators.required], nonNullable: false }),
     homeRoster: this.fb.control<number[]>([], { nonNullable: true }),
     awayRoster: this.fb.control<number[]>([], { nonNullable: true }),
