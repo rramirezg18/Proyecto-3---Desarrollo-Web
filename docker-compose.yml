@@ -49,7 +49,7 @@ services:
       api:
         condition: service_started
     ports:
-      - "8081:80"
+      - "80:80"
 
 volumes:
   mssqldata:
