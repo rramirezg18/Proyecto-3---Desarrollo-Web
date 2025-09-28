@@ -1,8 +1,7 @@
 // src/app/features/scoreboard/scoreboard/scoreboard.ts
 import { Component, computed, effect, inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router'; // ⬅️ RouterModule
 import Swal from 'sweetalert2';
 
 import { ApiService } from '../../../core/api';
@@ -13,8 +12,6 @@ import { TeamPanelComponent } from '../../../shared/team-panel/team-panel';
 import { TimerComponent } from '../../../shared/timer/timer';
 import { QuarterIndicatorComponent } from '../../../shared/quarter-indicator/quarter-indicator';
 import { FoulsPanelComponent } from '../../../shared/fouls-panel/fouls-panel';
-import { TopbarComponent } from '../../../shared/topbar/topbar';
-import { AdminMenuComponent } from '../../../shared/admin-menu/admin-menu';
 
 @Component({
   selector: 'app-scoreboard',
@@ -23,19 +20,19 @@ import { AdminMenuComponent } from '../../../shared/admin-menu/admin-menu';
   styleUrls: ['./scoreboard.css'],
   imports: [
     CommonModule,
-    MatButtonModule,
+    RouterModule,                 // ⬅️ necesario para [routerLink]
     TeamPanelComponent,
     TimerComponent,
     QuarterIndicatorComponent,
-    FoulsPanelComponent,
-    TopbarComponent,
-    AdminMenuComponent
+    FoulsPanelComponent
   ]
 })
 export class ScoreboardComponent {
   private route = inject(ActivatedRoute);
   private api = inject(ApiService);
   private platformId = inject(PLATFORM_ID);
+  private router = inject(Router);
+
   auth = inject(AuthenticationService);
   realtime = inject(RealtimeService);
 
@@ -66,9 +63,12 @@ export class ScoreboardComponent {
         this.realtime.score.set({ home: m.homeScore, away: m.awayScore });
         this.homeName = m.homeTeam || 'A TEAM';
         this.awayName = m.awayTeam || 'B TEAM';
-        if (typeof m.quarter === 'number') this.realtime.quarter.set(m.quarter); // ✅ set inicial
+        if (typeof m.quarter === 'number') this.realtime.quarter.set(m.quarter);
         this.realtime.hydrateTimerFromSnapshot(m.timer);
-        if (m?.fouls) this.realtime.hydrateFoulsFromSnapshot({ home: m.homeFouls ?? 0, away: m.awayFouls ?? 0 });
+        if (m?.fouls) {
+          const fouls = m.fouls ?? { home: m.homeFouls ?? 0, away: m.awayFouls ?? 0 };
+          this.realtime.hydrateFoulsFromSnapshot(fouls);
+        }
       }
     });
 
@@ -80,6 +80,30 @@ export class ScoreboardComponent {
   ngOnDestroy() {
     if (isPlatformBrowser(this.platformId)) {
       this.realtime.disconnect();
+    }
+  }
+
+  // ===== HUD helpers =====
+  get isAdmin(): boolean {
+    try {
+      if (typeof this.auth.isAdmin === 'function') return this.auth.isAdmin();
+      const saved = localStorage.getItem('user');
+      const user = saved ? JSON.parse(saved) : null;
+      return user?.role?.name?.toLowerCase() === 'admin';
+    } catch {
+      return false;
+    }
+  }
+
+  logout() {
+    try {
+      if (typeof this.auth.logout === 'function') this.auth.logout();
+      else {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+    } finally {
+      this.router.navigate(['/login']);
     }
   }
 }

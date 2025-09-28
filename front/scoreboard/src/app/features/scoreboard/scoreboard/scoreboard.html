@@ -1,17 +1,22 @@
-<!-- src/app/features/scoreboard/scoreboard/scoreboard.html -->
 <div class="scoreboard-page">
-  <app-topbar
-    [showAdmin]="true"
-    [showControl]="true"
-    [showScore]="false"
-    [showLogout]="true"
-    [controlId]="matchId()"
-    [scoreId]="matchId()">
-  </app-topbar>
+  <!-- ===== HUD flotante (no altera el layout del tablero) ===== -->
+  <div class="hud-bar" aria-label="Scoreboard HUD">
+    <nav class="hud-left">
+      <a class="pill" routerLink="/players">👥 Jugadores</a>
+      <a class="pill" routerLink="/teams">🏀 Equipos</a>
+      <a class="pill" routerLink="/tournaments">🏆 Torneos</a>
+    </nav>
 
-  <app-admin-menu *ngIf="auth.isAdmin()" class="admin-menu-fixed"></app-admin-menu>
+    <nav class="hud-right">
+      <a *ngIf="isAdmin" class="pill" routerLink="/admin">⚙️ Admin</a>
+      <a class="pill" [routerLink]="['/control', matchId()]">🎛️ Control</a>
+      <button class="pill primary" (click)="logout()">↩️ Logout</button>
+    </nav>
+  </div>
 
+  <!-- ===== TABLERO ===== -->
   <div class="board">
+    <!-- TOP: FOULS + TIMER + FOULS -->
     <div class="top">
       <app-fouls-panel side="home" class="fouls left"></app-fouls-panel>
 
@@ -24,6 +29,7 @@
       <app-fouls-panel side="away" class="fouls right"></app-fouls-panel>
     </div>
 
+    <!-- MIDDLE: SCORE - POS/PERIOD - SCORE -->
     <div class="middle">
       <div class="score-box left">
         <app-team-panel [label]="homeName" [score]="realtime.score().home"></app-team-panel>

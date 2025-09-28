@@ -31,7 +31,7 @@ export class NewGameDialogComponent {
   form = this.fb.group({
     homeTeamId: [null as number | null, Validators.required],
     awayTeamId: [null as number | null, Validators.required],
-    minutes: [10, [Validators.required, Validators.min(1)]]
+    minutes: [10, [Validators.required, Validators.min(60)]]
   });
 
   ngOnInit() {
@@ -60,6 +60,7 @@ export class NewGameDialogComponent {
       homeTeamId,
       awayTeamId,
       quarterDurationSeconds: Math.round(Number(minutes) * 60)
+      
     });
   }
 }

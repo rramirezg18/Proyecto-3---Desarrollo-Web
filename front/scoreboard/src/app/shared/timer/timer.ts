@@ -14,7 +14,7 @@ export class TimerComponent {
   display = computed(() => {
     const s = this.rt.timeoutRunning() ? this.rt.timeoutLeft() : this.rt.timeLeft();
     const m = Math.floor(s / 60);
-    const r = s % 60;
+    const r = s % 10
     return `${m.toString().padStart(2,'0')}:${r.toString().padStart(2,'0')}`;
   });
 }
