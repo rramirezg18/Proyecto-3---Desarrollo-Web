@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 
 // Angular Material
 import { MatTableModule } from '@angular/material/table';
@@ -10,10 +11,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { FormsModule } from '@angular/forms';
 
 import { PlayerService } from '../../../services/player.service';
 import { Player } from '../../../models/player';
+import { AuthenticationService } from '../../../core/services/authentication.service';
 
 @Component({
   selector: 'app-players-list',
@@ -39,53 +40,57 @@ export class PlayersListComponent implements OnInit {
 
   totalItems = 0;
   page = 1;
-  pageSize = 5;
+  pageSize = 10;
 
   teamId: number | null = null;
-  search: string = '';
+  search = '';
 
-  constructor(private playerService: PlayerService) {}
+  private playerService = inject(PlayerService);
+  private auth = inject(AuthenticationService);
+  private router = inject(Router);
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.loadPlayers();
   }
 
-  // 📌 Cargar jugadores con filtros
-  loadPlayers() {
+  loadPlayers(): void {
     this.playerService.getPlayers(this.page, this.pageSize).subscribe(res => {
-      let players = res.items;
+      let players = res.items ?? [];
 
       if (this.teamId) {
         players = players.filter(p => p.teamId === this.teamId);
       }
-
-      if (this.search) {
+      if (this.search?.trim()) {
+        const q = this.search.toLowerCase();
         players = players.filter(p =>
-          p.name.toLowerCase().includes(this.search.toLowerCase())
+          (p.name ?? '').toLowerCase().includes(q) ||
+          String(p.number ?? '').includes(q)
         );
       }
 
       this.dataSource = players;
-      this.totalItems = res.totalCount;
+      this.totalItems = res.totalCount ?? players.length;
     });
   }
 
-  applyFilter() {
+  applyFilter(): void {
     this.page = 1;
     this.loadPlayers();
   }
 
-  deletePlayer(id: number) {
-    if (confirm('¿Eliminar jugador?')) {
-      this.playerService.delete(id).subscribe(() => this.loadPlayers());
-    }
-  }
-
-  // 📌 Nuevo método para manejar el paginador
-  onPageChange(event: PageEvent) {
-    this.page = event.pageIndex + 1; // Angular paginator empieza en 0
-    this.pageSize = event.pageSize;
+  onPageChange(e: PageEvent): void {
+    this.page = e.pageIndex + 1;
+    this.pageSize = e.pageSize;
     this.loadPlayers();
   }
-}
 
+  deletePlayer(id: number): void {
+    if (!confirm('¿Eliminar jugador?')) return;
+    this.playerService.delete(id).subscribe(() => this.loadPlayers());
+  }
+
+  logout(): void {
+    this.auth.logout();
+    this.router.navigate(['/login']);
+  }
+}

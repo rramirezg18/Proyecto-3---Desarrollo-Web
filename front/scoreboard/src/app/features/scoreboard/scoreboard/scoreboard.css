@@ -1,10 +1,115 @@
-/* ===== Fondo negro para toda la pantalla del scoreboard ===== */
+/* =============================
+   SAFE AREA + FONDO PANTALLA
+   ============================= */
+
+/* Altura “segura” del HUD para empujar el tablero */
+:root {
+  --hud-safe: 1000px; /* ajusta a gusto */
+}
+
+/* Fondo negro de la pantalla del scoreboard (NO tocar) + padding-top */
 .scoreboard-page {
   min-height: 100dvh;
   background: #0b0b0b;
+  padding-top: calc(var(--hud-safe) + 5px); /* 💡 crea el espacio visible */
 }
 
-/* ===== Tu CSS original (con pequeñas correcciones donde hicimos notas) ===== */
+/* En móviles un poco menos */
+@media (max-width: 720px) {
+  :root { --hud-safe: 56px; }
+  .scoreboard-page { padding-top: calc(var(--hud-safe) + 6px); }
+}
+
+/* =============================
+   HUD FIJO (no altera el layout)
+   ============================= */
+
+.hud-bar {
+  position: fixed;
+  top: 10px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  z-index: 3000;
+  pointer-events: none; /* el contenedor no captura eventos */
+}
+
+.hud-left, .hud-right {
+  display: flex;
+  gap: 10px;
+}
+
+/* Pills */
+.hud-bar .pill {
+  pointer-events: auto;          /* las pills sí capturan eventos */
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 800;
+  letter-spacing: .2px;
+  border: 1px solid rgba(255,255,255,.25);
+  background: rgba(255,255,255,.06);
+  color: #eef2ff;
+  text-decoration: none;
+  backdrop-filter: blur(4px);
+  transition: transform .08s ease, background .15s ease, border-color .15s ease;
+  box-shadow: 0 1px 0 rgba(0,0,0,.45) inset, 0 2px 8px rgba(0,0,0,.35);
+  line-height: 1;
+}
+
+.hud-bar .pill:hover {
+  background: rgba(255,255,255,.12);
+  border-color: rgba(255,255,255,.35);
+  transform: translateY(-1px);
+}
+
+.hud-bar .pill:active { transform: translateY(0); }
+
+.hud-bar .primary {
+  background: #9b57ff;
+  border-color: transparent;
+  color: #fff;
+}
+
+@media (max-width: 680px) {
+  .hud-left, .hud-right { gap: 6px; }
+  .hud-bar .pill { padding: 7px 12px; font-weight: 800; }
+}
+
+/* ==== FORZAR TEXTO CLARO (evita que algún global lo oscurezca) ==== */
+.hud-bar .pill,
+.hud-bar .pill:link,
+.hud-bar .pill:visited,
+.hud-bar .pill:hover {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 0 rgba(0,0,0,.45) !important;
+}
+
+.hud-bar .pill *,
+.hud-bar .pill > *,
+.hud-bar .pill > * > * {
+  color: inherit !important;
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
+  filter: none !important;
+}
+
+.hud-bar .pill svg,
+.hud-bar .pill svg * {
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+/* =============================
+   TABLERO (tu diseño original)
+   ============================= */
+
 :root {
   --bg-board: #0b0b0b;
   --bezel: #ffffff;
@@ -29,6 +134,8 @@
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 24px;
+  margin-top: 100px;
+
 }
 
 .fouls {
@@ -128,6 +235,7 @@
 .led-green  { color: var(--led-green);  --glow: #46ff6b; }
 .led-red    { color: var(--led-red);    --glow: #ff4d4d; }
 
+/* Responsive */
 @media (max-width: 1024px) {
   .board { padding: 16px; }
   .timer-bezel { width: min(95vw, 680px); }
@@ -149,7 +257,6 @@
   }
 }
 
-/* Tablet vertical */
 @media (max-width: 900px) {
   .top {
     grid-template-columns: 1fr auto 1fr;
@@ -161,7 +268,6 @@
   }
 }
 
-/* Celulares */
 @media (max-width: 720px) {
   .board {
     padding: 8px;
@@ -211,21 +317,5 @@
   }
   .pos .pos-text {
     font-size: 0.9rem !important;
-  }
-
-  /* Botón logout flotante */
-  .logout-btn {
-    position: fixed;
-    top: 15px;
-    right: 15px;
-    z-index: 2000;
-  }
-  .admin-menu-fixed {
-    position: fixed;
-    top: 12px;
-    right: 12px;
-    z-index: 1500;
-    display: flex;
-    gap: 8px;
   }
 }

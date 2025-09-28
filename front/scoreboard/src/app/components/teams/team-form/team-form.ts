@@ -8,9 +8,11 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';   // 👈 HABILITA <mat-icon>
 
 import { TeamService } from '../../../services/team.service';
 import { Team } from '../../../models/team';
+import { AuthenticationService } from '../../../core/services/authentication.service';
 
 @Component({
   selector: 'app-team-form',
@@ -22,7 +24,8 @@ import { Team } from '../../../models/team';
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
-    MatCardModule
+    MatCardModule,
+    MatIconModule, // 👈 NECESARIO PARA <mat-icon>
   ],
   templateUrl: './team-form.html',
   styleUrls: ['./team-form.scss']
@@ -34,7 +37,8 @@ export class TeamFormComponent implements OnInit {
   constructor(
     private teamService: TeamService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private auth: AuthenticationService, // 👈 para logout del header
   ) {}
 
   ngOnInit() {
@@ -55,5 +59,11 @@ export class TeamFormComponent implements OnInit {
         this.router.navigate(['/teams']);
       });
     }
+  }
+
+  // 👇 usado por el botón "Logout" del header
+  logout() {
+    this.auth.logout();
+    this.router.navigate(['/login']);
   }
 }

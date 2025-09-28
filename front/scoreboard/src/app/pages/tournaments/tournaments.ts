@@ -11,6 +11,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatIconModule } from '@angular/material/icon';
+import { MatCardModule } from '@angular/material/card';
 import { Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
@@ -36,7 +37,6 @@ import {
     CommonModule,
     ReactiveFormsModule,
     RouterModule,
-
     // Material
     MatFormFieldModule,
     MatSelectModule,
@@ -47,7 +47,8 @@ import {
     MatSnackBarModule,
     MatTableModule,
     MatPaginatorModule,
-    MatIconModule
+    MatIconModule,
+    MatCardModule
   ],
   templateUrl: './tournaments.html',
   styleUrls: ['./tournaments.css']

@@ -1,7 +1,6 @@
-// src/app/components/teams/teams-list/teams-list.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
@@ -13,6 +12,7 @@ import { MatInputModule } from '@angular/material/input';
 
 import { TeamService } from '../../../services/team.service';
 import { Team } from '../../../models/team';
+import { AuthenticationService } from '../../../core/services/authentication.service';
 
 @Component({
   selector: 'app-teams-list',
@@ -40,10 +40,14 @@ export class TeamsListComponent implements OnInit {
 
   // Paginación
   page = 1;
-  pageSize = 5;
+  pageSize = 10;
   totalItems = 0;
 
-  constructor(private teamService: TeamService) {}
+  constructor(
+    private teamService: TeamService,
+    private auth: AuthenticationService,
+    private router: Router
+  ) {}
 
   ngOnInit() {
     this.loadTeams();
@@ -72,4 +76,12 @@ export class TeamsListComponent implements OnInit {
     if (!confirm('¿Eliminar equipo?')) return;
     this.teamService.delete(id).subscribe(() => this.loadTeams());
   }
+
+  // Header actions
+  
+  logout() {
+  // Ajusta si tu servicio devuelve un Observable/Promise
+  (this as any).auth?.logout?.();
+  (this as any).router?.navigate?.(['/login']);
+}
 }
