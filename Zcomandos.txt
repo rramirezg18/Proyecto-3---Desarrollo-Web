@@ -1,0 +1,26 @@
+sudo apt install -y certbot python3-certbot-nginx
+
+
+sudo certbot --nginx -d proyectosdw.lat -d www.proyectosdw.lat
+
+
+sudo nano /etc/nginx/sites-available/proyectosdw.conf   # pegaste tus server blocks
+sudo ln -s /etc/nginx/sites-available/proyectosdw.conf /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+
+
+sudo nginx -t
+sudo systemctl reload nginx
+
+
+sudo nginx -t && sudo systemctl reload nginx
+
+
+
+sudo docker ps 
+sudo docker compose build api web
+sudo docker compose up -d 
+
+
+melgust/IngeMelvin
+

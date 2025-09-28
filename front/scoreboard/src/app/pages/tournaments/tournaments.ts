@@ -10,6 +10,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatIconModule } from '@angular/material/icon';
+import { MatCardModule } from '@angular/material/card';
 import { Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
@@ -27,8 +29,7 @@ import {
   FoulItem,
   ScoreEventItem
 } from '../../services/matches.service';
-import { MatIconModule } from '@angular/material/icon'; // 👈 nuevo
-import { MatCardModule } from '@angular/material/card'; 
+
 @Component({
   selector: 'app-tournaments',
   standalone: true,
@@ -36,6 +37,7 @@ import { MatCardModule } from '@angular/material/card';
     CommonModule,
     ReactiveFormsModule,
     RouterModule,
+    // Material
     MatFormFieldModule,
     MatSelectModule,
     MatInputModule,
@@ -130,9 +132,10 @@ export class TournamentsComponent implements OnInit, OnDestroy {
     this.loadTeams();
     this.loadMatches();
 
-    // Wire del buscador con debounce y reset de página
+    // Buscador con debounce + reset de página
     this.subs.add(
-      this.search.valueChanges.pipe(debounceTime(250), distinctUntilChanged())
+      this.search.valueChanges
+        .pipe(debounceTime(250), distinctUntilChanged())
         .subscribe(v => {
           this.term.set((v ?? '').toString());
           this.pageIndex.set(0);
@@ -142,6 +145,12 @@ export class TournamentsComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.subs.unsubscribe();
+  }
+
+  // Enfoca la caja de búsqueda (para el botón “Filtrar” del toolbar)
+  focusSearch(input: HTMLInputElement) {
+    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => { input.focus(); input.select(); }, 120);
   }
 
   /* ================== carga de datos ================== */
@@ -159,7 +168,6 @@ export class TournamentsComponent implements OnInit, OnDestroy {
     this.matchesSvc.list({ page: 1, pageSize: 1000 }).subscribe({
       next: (resp) => {
         this.matches.set(resp.items ?? []);
-        // Evita error de tipos: usa cualquiera de los nombres que pueda venir
         const total = (resp as any).total ?? (resp as any).totalCount ?? (resp.items?.length ?? 0);
         this.totalRaw.set(total);
         this.loading.set(false);
