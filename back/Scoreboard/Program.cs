@@ -143,16 +143,16 @@ if (app.Environment.IsDevelopment())
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-app.UseAuthentication();   // ← antes que Authorization
+app.UseAuthentication();   
 app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<ScoreHub>("/hubs/score");
 
-// SPA fallback
+
 app.MapFallbackToFile("/index.html");
 
-// 9) Migraciones + seed
+
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
