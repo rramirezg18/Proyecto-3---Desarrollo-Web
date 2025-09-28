@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Scoreboard.Infrastructure;
 using Scoreboard.Models.Entities;
+using Microsoft.AspNetCore.Authorization; 
 
 namespace Scoreboard.Controllers;
 
@@ -11,6 +12,7 @@ public class PlayersController(AppDbContext db) : ControllerBase
 {
     // GET /api/players?page=1&pageSize=10&teamId=1&search=lebron
     [HttpGet]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetAll(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
@@ -40,7 +42,8 @@ public class PlayersController(AppDbContext db) : ControllerBase
             .OrderBy(p => p.Number)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(p => new {
+            .Select(p => new
+            {
                 id = p.Id,
                 number = p.Number,
                 name = p.Name,
