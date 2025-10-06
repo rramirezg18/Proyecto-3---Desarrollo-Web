@@ -1,0 +1,26 @@
+version: "3.9"
+services:
+  report-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: report-service:dev
+    container_name: report-service
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+    restart: unless-stopped
+    # Monta tu código cuando lo tengas:
+    # volumes:
+    #   - ./app:/app/app
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
