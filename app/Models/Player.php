@@ -9,11 +9,18 @@ class Player extends Model
 {
     use HasFactory;
 
-    // Campos permitidos para asignación masiva
     protected $fillable = [
         'name',
         'email',
         'age',
         'team',
+        'position',
+        'number',
+        'nationality',
+    ];
+
+    protected $casts = [
+        'age' => 'integer',
+        'number' => 'integer',
     ];
 }
